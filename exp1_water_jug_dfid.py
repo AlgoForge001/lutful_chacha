@@ -1,49 +1,28 @@
 # Exp 1: Water Jug Problem using DFID
-# State = (x, y): x = litres in jug A, y = litres in jug B. Goal: x == target
 
-def successors(state, a, b):
-    x, y = state
-    p = min(x, b - y)   # amount poured A -> B
-    q = min(y, a - x)   # amount poured B -> A
-    return [("Fill A", (a, y)),
-            ("Fill B", (x, b)),
-            ("Empty A", (0, y)),
-            ("Empty B", (x, 0)),
-            ("Pour A->B", (x - p, y + p)),
-            ("Pour B->A", (x + q, y - q))]
+def dls(path, lim, a, b, t, n):
+    x, y = path[-1][1]
+    if x == t: return path, n
+    if lim == 0: return None, n
+    p, q = min(x, b-y), min(y, a-x)
+    for op, s in [("Fill A",(a,y)),("Fill B",(x,b)),("Empty A",(0,y)),
+                  ("Empty B",(x,0)),("A->B",(x-p,y+p)),("B->A",(x+q,y-q))]:
+        if s not in [v for _,v in path]:
+            n += 1
+            r, n = dls(path+[(op,s)], lim-1, a, b, t, n)
+            if r: return r, n
+    return None, n
 
-nodes = 0
-
-def dls(path, limit, a, b, target):
-    """Depth limited search. path = list of (operator, state)."""
-    global nodes
-    state = path[-1][1]
-    if state[0] == target:
-        return path
-    if limit == 0:
-        return None
-    for op, nxt in successors(state, a, b):
-        if nxt not in [s for _, s in path]:      # don't revisit state on current path
-            nodes += 1
-            result = dls(path + [(op, nxt)], limit - 1, a, b, target)
-            if result:
-                return result
-    return None
-
-def dfid(a, b, target):
-    global nodes
-    nodes = 0
-    max_depth = (a + 1) * (b + 1)
-    print(f"\nJugs {a}L and {b}L, target = {target}L in the {a}L jug")
-    for limit in range(max_depth + 1):          # limits 0, 1, 2, ...
-        result = dls([("Start", (0, 0))], limit, a, b, target)
-        if result:
-            for op, s in result:
-                print(f"  {op:10s} -> {s}")
-            print(f"Goal reached at depth {len(result) - 1}, nodes generated = {nodes}")
+def dfid(a, b, t):
+    print(f"\nJugs {a}L & {b}L, target={t}L")
+    for lim in range((a+1)*(b+1)+1):
+        r, n = dls([("Start",(0,0))], lim, a, b, t, 0)
+        if r:
+            for op, s in r: print(f"  {op:8s} -> {s}")
+            print(f"Depth {len(r)-1}, nodes={n}")
             return
-    print(f"No solution (searched up to depth {max_depth}, nodes generated = {nodes})")
+    print("No solution")
 
-dfid(4, 3, 2)   # main problem
-dfid(5, 3, 4)   # second combination
-dfid(4, 2, 3)   # unsolvable case
+dfid(4,3,2)
+dfid(5,3,4)
+dfid(4,2,3)
