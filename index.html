@@ -2,33 +2,72 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Download ZIP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Download Lab Codes</title>
   <!-- Disables and clears any cached browser tab favicon/logo -->
   <link rel="icon" href="data:,">
   <style>
     body {
       background-color: #121212;
       color: #ffffff;
-      margin: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 20px;
+    }
+    .button-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    a {
+      text-decoration: none;
     }
     button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       background-color: #1e1e1e;
       color: #ffffff;
       border: 1px solid #333333;
-      padding: 6px 14px;
+      padding: 8px 16px;
       font-size: 14px;
-      border-radius: 4px;
+      font-weight: 500;
+      border-radius: 6px;
       cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
     }
     button:hover {
       background-color: #2a2a2a;
-      border-color: #444444;
+      border-color: #555555;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    button svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
     }
   </style>
 </head>
 <body>
-  <a href="aisc_lab_codes.zip" download="aisc_lab_codes.zip">
-    <button>Download ZIP</button>
-  </a>
+  <div class="button-container">
+    <a href="aisc_lab_codes.zip" download="aisc_lab_codes.zip">
+      <button>
+        <svg viewBox="0 0 24 24">
+          <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+        </svg>
+        Download AISC Lab Codes
+      </button>
+    </a>
+    <a href="mdm.zip" download="mdm.zip">
+      <button>
+        <svg viewBox="0 0 24 24">
+          <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+        </svg>
+        Download MDM Folder
+      </button>
+    </a>
+  </div>
 </body>
 </html>
