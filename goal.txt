@@ -1,0 +1,38 @@
+mount c c:\TP(ya jo bhi folder ka naam hain )
+c:
+cd prolog
+prolog
+
+
+exp5:
+goal:
+sum([1,2,3,4],S)
+ len([5,6,7],N)
+ append([1,2],[3,4],R) 
+member(3,[1,2,3]) 
+show([1,2,3]) 
+delete(2,[1,2,3],R) 
+
+
+exp 7:
+cousin(rohan,X) 
+ancestor(X,arjun) 
+sibling(amit,X) 
+aunt(sunita,X) 
+
+
+exp 11:
+likes(john,peanuts) 
+food(X)
+ eats(harry,barley) 
+
+exp 12:
+ grandparent(asha,chitra) 
+ancestor(asha,dev)
+ ancestor(asha,X)
+ sibling(bala,gita) 
+grandparent(gita,dev)
+ ancestor(dev,asha)
+ ancestor(X,dev)
+ sibling(bala,X) 
+grandparent(X,Y) 
