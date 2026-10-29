@@ -1,0 +1,248 @@
+
+-- CHIT NO. 8
+-- EXPERIMENT 3: BASIC OLAP OPERATIONS (VARIANT 2)
+-- Domain: Retail Sales Analysis
+-- SQLite-compatible SQL
+
+PRAGMA foreign_keys = ON;
+
+-- =========================================
+-- PART 1: CREATE TABLES
+-- =========================================
+
+DROP TABLE IF EXISTS FactSales;
+DROP TABLE IF EXISTS DimTime;
+DROP TABLE IF EXISTS DimProduct;
+DROP TABLE IF EXISTS DimLocation;
+
+CREATE TABLE DimTime (
+    TimeKey INTEGER PRIMARY KEY,
+    Day INTEGER NOT NULL,
+    Month INTEGER NOT NULL,
+    Quarter INTEGER NOT NULL,
+    Year INTEGER NOT NULL
+);
+
+CREATE TABLE DimProduct (
+    ProductKey INTEGER PRIMARY KEY,
+    ProductName TEXT NOT NULL,
+    Category TEXT NOT NULL
+);
+
+CREATE TABLE DimLocation (
+    LocationKey INTEGER PRIMARY KEY,
+    City TEXT NOT NULL,
+    State TEXT NOT NULL,
+    Country TEXT NOT NULL,
+    Region TEXT NOT NULL
+);
+
+CREATE TABLE FactSales (
+    SalesKey INTEGER PRIMARY KEY,
+    TimeKey INTEGER NOT NULL,
+    ProductKey INTEGER NOT NULL,
+    LocationKey INTEGER NOT NULL,
+    QuantitySold INTEGER NOT NULL,
+    SalesAmount REAL NOT NULL,
+    FOREIGN KEY (TimeKey) REFERENCES DimTime(TimeKey),
+    FOREIGN KEY (ProductKey) REFERENCES DimProduct(ProductKey),
+    FOREIGN KEY (LocationKey) REFERENCES DimLocation(LocationKey)
+);
+
+-- =========================================
+-- PART 2: INSERT TIME DIMENSION DATA
+-- =========================================
+
+INSERT INTO DimTime VALUES
+(1, 10, 1, 1, 2024),
+(2, 15, 2, 1, 2024),
+(3, 20, 3, 1, 2024),
+(4, 12, 4, 2, 2024),
+(5, 18, 5, 2, 2024),
+(6, 22, 6, 2, 2024),
+(7, 10, 7, 3, 2025),
+(8, 14, 8, 3, 2025),
+(9, 19, 9, 3, 2025),
+(10, 11, 10, 4, 2025),
+(11, 16, 11, 4, 2025),
+(12, 21, 12, 4, 2025);
+
+-- =========================================
+-- PART 3: INSERT PRODUCT DIMENSION DATA
+-- =========================================
+
+INSERT INTO DimProduct VALUES
+(1, 'Laptop', 'Electronics'),
+(2, 'Mobile', 'Electronics'),
+(3, 'Chair', 'Furniture'),
+(4, 'Desk', 'Furniture');
+
+-- =========================================
+-- PART 4: INSERT LOCATION DIMENSION DATA
+-- =========================================
+
+INSERT INTO DimLocation VALUES
+(1, 'Mumbai', 'Maharashtra', 'India', 'West'),
+(2, 'Pune', 'Maharashtra', 'India', 'West'),
+(3, 'Delhi', 'Delhi', 'India', 'North'),
+(4, 'Jaipur', 'Rajasthan', 'India', 'North'),
+(5, 'London', 'England', 'United Kingdom', 'Europe');
+
+-- =========================================
+-- PART 5: INSERT FACT DATA
+-- 12 rows in FactSales
+-- =========================================
+
+INSERT INTO FactSales VALUES
+(1, 1, 1, 1, 5, 250000),
+(2, 2, 2, 1, 10, 150000),
+(3, 3, 3, 2, 8, 40000),
+(4, 4, 1, 3, 4, 200000),
+(5, 5, 4, 2, 6, 90000),
+(6, 6, 2, 3, 7, 105000),
+(7, 7, 1, 1, 3, 150000),
+(8, 8, 3, 2, 10, 50000),
+(9, 9, 4, 3, 5, 75000),
+(10, 10, 2, 4, 6, 90000),
+(11, 11, 1, 5, 2, 100000),
+(12, 12, 3, 5, 4, 20000);
+
+-- =========================================
+-- PART 6: DISPLAY ALL TABLES
+-- =========================================
+
+SELECT * FROM DimTime;
+SELECT * FROM DimProduct;
+SELECT * FROM DimLocation;
+SELECT * FROM FactSales;
+
+-- =========================================
+-- PART 7: SLICE OPERATION
+-- Slice on Location: West region
+-- =========================================
+
+SELECT
+    L.Region,
+    L.City,
+    L.State,
+    L.Country,
+    P.ProductName,
+    F.QuantitySold,
+    F.SalesAmount
+FROM FactSales F
+JOIN DimLocation L ON F.LocationKey = L.LocationKey
+JOIN DimProduct P ON F.ProductKey = P.ProductKey
+WHERE L.Region = 'West'
+ORDER BY L.City;
+
+-- Business question:
+-- What are the sales quantities and revenue in the West region?
+
+-- =========================================
+-- PART 8: DICE OPERATION
+-- Two years: 2024 and 2025
+-- Product category: Electronics
+-- =========================================
+
+SELECT
+    T.Year,
+    P.Category,
+    P.ProductName,
+    SUM(F.QuantitySold) AS TotalQuantity,
+    SUM(F.SalesAmount) AS TotalSales
+FROM FactSales F
+JOIN DimTime T ON F.TimeKey = T.TimeKey
+JOIN DimProduct P ON F.ProductKey = P.ProductKey
+WHERE T.Year IN (2024, 2025)
+  AND P.Category = 'Electronics'
+GROUP BY T.Year, P.Category, P.ProductName
+ORDER BY T.Year, P.ProductName;
+
+-- Business question:
+-- How much did Electronics products sell in 2024 and 2025?
+
+-- =========================================
+-- PART 9: ROLL-UP OPERATION
+-- City -> State -> Country
+-- SQLite alternative to WITH ROLLUP
+-- =========================================
+
+-- City-level totals
+SELECT
+    'City' AS Level,
+    L.Country,
+    L.State,
+    L.City,
+    SUM(F.SalesAmount) AS TotalSales
+FROM FactSales F
+JOIN DimLocation L ON F.LocationKey = L.LocationKey
+GROUP BY L.Country, L.State, L.City
+
+UNION ALL
+
+-- State-level totals
+SELECT
+    'State' AS Level,
+    L.Country,
+    L.State,
+    NULL AS City,
+    SUM(F.SalesAmount) AS TotalSales
+FROM FactSales F
+JOIN DimLocation L ON F.LocationKey = L.LocationKey
+GROUP BY L.Country, L.State
+
+UNION ALL
+
+-- Country-level totals
+SELECT
+    'Country' AS Level,
+    L.Country,
+    NULL AS State,
+    NULL AS City,
+    SUM(F.SalesAmount) AS TotalSales
+FROM FactSales F
+JOIN DimLocation L ON F.LocationKey = L.LocationKey
+GROUP BY L.Country
+ORDER BY Country, State, City;
+
+-- Business question:
+-- How does revenue aggregate from individual cities to states and countries?
+
+-- =========================================
+-- PART 10: DRILL-DOWN OPERATION
+-- Country -> State -> City
+-- =========================================
+
+SELECT
+    L.Country,
+    L.State,
+    L.City,
+    SUM(F.QuantitySold) AS TotalQuantity,
+    SUM(F.SalesAmount) AS TotalSales
+FROM FactSales F
+JOIN DimLocation L ON F.LocationKey = L.LocationKey
+GROUP BY L.Country, L.State, L.City
+ORDER BY L.Country, L.State, L.City;
+
+-- Business question:
+-- Which states and cities contribute to each country's total sales?
+
+-- =========================================
+-- PART 11: PIVOT OPERATION
+-- Product categories as columns
+-- =========================================
+
+SELECT
+    T.Year,
+    SUM(CASE WHEN P.Category = 'Electronics'
+             THEN F.SalesAmount ELSE 0 END) AS ElectronicsSales,
+    SUM(CASE WHEN P.Category = 'Furniture'
+             THEN F.SalesAmount ELSE 0 END) AS FurnitureSales
+FROM FactSales F
+JOIN DimTime T ON F.TimeKey = T.TimeKey
+JOIN DimProduct P ON F.ProductKey = P.ProductKey
+GROUP BY T.Year
+ORDER BY T.Year;
+
+-- Business question:
+-- How do annual Electronics and Furniture sales compare?

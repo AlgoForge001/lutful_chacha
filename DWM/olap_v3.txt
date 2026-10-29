@@ -1,0 +1,252 @@
+
+-- CHIT NO. 9
+-- EXPERIMENT 3: BASIC OLAP OPERATIONS (VARIANT 3)
+-- Domain: Retail Sales Analysis
+-- Compatible with SQLite online compilers
+
+PRAGMA foreign_keys = ON;
+
+-- =========================================
+-- PART 1: CREATE TABLES
+-- =========================================
+
+DROP TABLE IF EXISTS FactSales;
+DROP TABLE IF EXISTS DimTime;
+DROP TABLE IF EXISTS DimProduct;
+DROP TABLE IF EXISTS DimCustomer;
+
+CREATE TABLE DimTime (
+    TimeKey INTEGER PRIMARY KEY,
+    Day INTEGER NOT NULL,
+    Month INTEGER NOT NULL,
+    Quarter INTEGER NOT NULL,
+    Year INTEGER NOT NULL
+);
+
+CREATE TABLE DimProduct (
+    ProductKey INTEGER PRIMARY KEY,
+    ProductName TEXT NOT NULL,
+    Category TEXT NOT NULL,
+    Department TEXT NOT NULL
+);
+
+CREATE TABLE DimCustomer (
+    CustomerKey INTEGER PRIMARY KEY,
+    CustomerName TEXT NOT NULL,
+    Segment TEXT NOT NULL
+);
+
+CREATE TABLE FactSales (
+    SalesKey INTEGER PRIMARY KEY,
+    TimeKey INTEGER NOT NULL,
+    ProductKey INTEGER NOT NULL,
+    CustomerKey INTEGER NOT NULL,
+    QuantitySold INTEGER NOT NULL,
+    SalesAmount REAL NOT NULL,
+    FOREIGN KEY (TimeKey) REFERENCES DimTime(TimeKey),
+    FOREIGN KEY (ProductKey) REFERENCES DimProduct(ProductKey),
+    FOREIGN KEY (CustomerKey) REFERENCES DimCustomer(CustomerKey)
+);
+
+-- =========================================
+-- PART 2: INSERT TIME DIMENSION DATA
+-- Includes two quarters: Q1 and Q2 of 2025
+-- =========================================
+
+INSERT INTO DimTime VALUES
+(1, 5, 1, 1, 2025),
+(2, 12, 1, 1, 2025),
+(3, 15, 2, 1, 2025),
+(4, 20, 3, 1, 2025),
+(5, 8, 4, 2, 2025),
+(6, 14, 4, 2, 2025),
+(7, 10, 5, 2, 2025),
+(8, 18, 5, 2, 2025),
+(9, 7, 6, 2, 2025),
+(10, 22, 6, 2, 2025),
+(11, 9, 7, 3, 2025),
+(12, 16, 8, 3, 2025);
+
+-- =========================================
+-- PART 3: INSERT PRODUCT DIMENSION DATA
+-- =========================================
+
+INSERT INTO DimProduct VALUES
+(1, 'Laptop', 'Computers', 'Electronics'),
+(2, 'Desktop', 'Computers', 'Electronics'),
+(3, 'Mobile', 'Phones', 'Electronics'),
+(4, 'Tablet', 'Phones', 'Electronics'),
+(5, 'Office Chair', 'Furniture', 'Home and Office'),
+(6, 'Office Desk', 'Furniture', 'Home and Office');
+
+-- =========================================
+-- PART 4: INSERT CUSTOMER DIMENSION DATA
+-- =========================================
+
+INSERT INTO DimCustomer VALUES
+(1, 'Aarav Sharma', 'Retail'),
+(2, 'Diya Patel', 'Wholesale'),
+(3, 'Rohan Mehta', 'Corporate'),
+(4, 'Ananya Singh', 'Retail'),
+(5, 'Kabir Shah', 'Wholesale');
+
+-- =========================================
+-- PART 5: INSERT FACT DATA
+-- 12 rows in FactSales
+-- =========================================
+
+INSERT INTO FactSales VALUES
+(1, 1, 1, 1, 2, 100000),
+(2, 2, 3, 2, 5, 75000),
+(3, 3, 5, 3, 4, 40000),
+(4, 4, 2, 1, 2, 80000),
+(5, 5, 1, 4, 3, 150000),
+(6, 6, 4, 5, 4, 60000),
+(7, 7, 6, 3, 5, 75000),
+(8, 8, 3, 1, 6, 90000),
+(9, 9, 5, 2, 3, 30000),
+(10, 10, 2, 5, 1, 40000),
+(11, 11, 1, 3, 2, 100000),
+(12, 12, 6, 4, 2, 30000);
+
+-- =========================================
+-- PART 6: DISPLAY ALL TABLES
+-- =========================================
+
+SELECT * FROM DimTime;
+SELECT * FROM DimProduct;
+SELECT * FROM DimCustomer;
+SELECT * FROM FactSales;
+
+-- =========================================
+-- PART 7: SLICE OPERATION
+-- Slice on Product category: Electronics
+-- =========================================
+
+SELECT
+    P.Category,
+    P.ProductName,
+    P.Department,
+    SUM(F.QuantitySold) AS TotalQuantity,
+    SUM(F.SalesAmount) AS TotalSales
+FROM FactSales F
+JOIN DimProduct P ON F.ProductKey = P.ProductKey
+WHERE P.Category = 'Computers'
+GROUP BY P.Category, P.ProductName, P.Department
+ORDER BY P.ProductName;
+
+-- Business question:
+-- What are the total quantities and sales of products in the Computers category?
+
+-- =========================================
+-- PART 8: DICE OPERATION
+-- Customer segment: Retail and Wholesale
+-- Time: Q1 and Q2 of 2025
+-- =========================================
+
+SELECT
+    T.Year,
+    T.Quarter,
+    C.Segment,
+    SUM(F.QuantitySold) AS TotalQuantity,
+    SUM(F.SalesAmount) AS TotalSales
+FROM FactSales F
+JOIN DimTime T ON F.TimeKey = T.TimeKey
+JOIN DimCustomer C ON F.CustomerKey = C.CustomerKey
+WHERE C.Segment IN ('Retail', 'Wholesale')
+  AND T.Year = 2025
+  AND T.Quarter IN (1, 2)
+GROUP BY T.Year, T.Quarter, C.Segment
+ORDER BY T.Quarter, C.Segment;
+
+-- Business question:
+-- How do Retail and Wholesale customer sales compare in Q1 and Q2 of 2025?
+
+-- =========================================
+-- PART 9: ROLL-UP OPERATION
+-- Product -> Category -> Department
+-- SQLite alternative to WITH ROLLUP
+-- =========================================
+
+-- Product-level totals
+SELECT
+    'Product' AS Level,
+    P.Department,
+    P.Category,
+    P.ProductName,
+    SUM(F.SalesAmount) AS TotalSales
+FROM FactSales F
+JOIN DimProduct P ON F.ProductKey = P.ProductKey
+GROUP BY P.Department, P.Category, P.ProductName
+
+UNION ALL
+
+-- Category-level totals
+SELECT
+    'Category' AS Level,
+    P.Department,
+    P.Category,
+    NULL AS ProductName,
+    SUM(F.SalesAmount) AS TotalSales
+FROM FactSales F
+JOIN DimProduct P ON F.ProductKey = P.ProductKey
+GROUP BY P.Department, P.Category
+
+UNION ALL
+
+-- Department-level totals
+SELECT
+    'Department' AS Level,
+    P.Department,
+    NULL AS Category,
+    NULL AS ProductName,
+    SUM(F.SalesAmount) AS TotalSales
+FROM FactSales F
+JOIN DimProduct P ON F.ProductKey = P.ProductKey
+GROUP BY P.Department
+ORDER BY Department, Category, ProductName;
+
+-- Business question:
+-- How does sales revenue aggregate from individual products to categories and departments?
+
+-- =========================================
+-- PART 10: DRILL-DOWN OPERATION
+-- Department -> Category -> Product
+-- =========================================
+
+SELECT
+    P.Department,
+    P.Category,
+    P.ProductName,
+    SUM(F.QuantitySold) AS TotalQuantity,
+    SUM(F.SalesAmount) AS TotalSales
+FROM FactSales F
+JOIN DimProduct P ON F.ProductKey = P.ProductKey
+GROUP BY P.Department, P.Category, P.ProductName
+ORDER BY P.Department, P.Category, P.ProductName;
+
+-- Business question:
+-- Which categories and products contribute to each department's sales?
+
+-- =========================================
+-- PART 11: PIVOT OPERATION
+-- Customer segments become columns
+-- =========================================
+
+SELECT
+    T.Quarter,
+    SUM(CASE WHEN C.Segment = 'Retail'
+             THEN F.SalesAmount ELSE 0 END) AS RetailSales,
+    SUM(CASE WHEN C.Segment = 'Wholesale'
+             THEN F.SalesAmount ELSE 0 END) AS WholesaleSales,
+    SUM(CASE WHEN C.Segment = 'Corporate'
+             THEN F.SalesAmount ELSE 0 END) AS CorporateSales
+FROM FactSales F
+JOIN DimTime T ON F.TimeKey = T.TimeKey
+JOIN DimCustomer C ON F.CustomerKey = C.CustomerKey
+WHERE T.Year = 2025
+GROUP BY T.Quarter
+ORDER BY T.Quarter;
+
+-- Business question:
+-- How do sales compare across Retail, Wholesale, and Corporate customers by quarter?

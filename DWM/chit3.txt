@@ -1,0 +1,486 @@
+/* =====================================================
+   CHIT NO. 3
+   EXPERIMENT 1 & 2
+   STAR AND SNOWFLAKE SCHEMA: SUPERMARKET CHAIN
+   SQLITE ONLINE COMPILER
+   ===================================================== */
+
+
+/* =====================================================
+   PART A: STAR SCHEMA
+   ===================================================== */
+
+/* Remove old tables so the script can be rerun */
+
+DROP TABLE IF EXISTS Star_FactSales;
+DROP TABLE IF EXISTS Star_DimPromotion;
+DROP TABLE IF EXISTS Star_DimCustomer;
+DROP TABLE IF EXISTS Star_DimStore;
+DROP TABLE IF EXISTS Star_DimProduct;
+DROP TABLE IF EXISTS Star_DimTime;
+
+
+/* 1. TIME DIMENSION */
+
+CREATE TABLE Star_DimTime (
+    TimeKey INTEGER PRIMARY KEY,
+    FullDate DATE NOT NULL,
+    DayNumber INTEGER,
+    MonthName VARCHAR(20),
+    QuarterNumber INTEGER,
+    CalendarYear INTEGER
+);
+
+
+/* 2. PRODUCT DIMENSION */
+
+CREATE TABLE Star_DimProduct (
+    ProductKey INTEGER PRIMARY KEY,
+    ProductName VARCHAR(100),
+    CategoryName VARCHAR(50),
+    BrandName VARCHAR(50)
+);
+
+
+/* 3. STORE DIMENSION */
+
+CREATE TABLE Star_DimStore (
+    StoreKey INTEGER PRIMARY KEY,
+    StoreName VARCHAR(100),
+    City VARCHAR(50),
+    StateName VARCHAR(50)
+);
+
+
+/* 4. CUSTOMER DIMENSION */
+
+CREATE TABLE Star_DimCustomer (
+    CustomerKey INTEGER PRIMARY KEY,
+    CustomerName VARCHAR(100),
+    CustomerType VARCHAR(50),
+    Email VARCHAR(100)
+);
+
+
+/* 5. PROMOTION DIMENSION */
+
+CREATE TABLE Star_DimPromotion (
+    PromotionKey INTEGER PRIMARY KEY,
+    PromotionName VARCHAR(100),
+    PromotionType VARCHAR(50),
+    StartDate DATE,
+    EndDate DATE
+);
+
+
+/* 6. STAR FACT TABLE */
+
+CREATE TABLE Star_FactSales (
+    SalesKey INTEGER PRIMARY KEY,
+    TimeKey INTEGER NOT NULL,
+    ProductKey INTEGER NOT NULL,
+    StoreKey INTEGER NOT NULL,
+    CustomerKey INTEGER NOT NULL,
+    PromotionKey INTEGER NOT NULL,
+
+    QuantitySold INTEGER NOT NULL,
+    SalesAmount DECIMAL(12,2) NOT NULL,
+    DiscountAmount DECIMAL(12,2) NOT NULL,
+    Profit DECIMAL(12,2) NOT NULL,
+
+    FOREIGN KEY (TimeKey)
+        REFERENCES Star_DimTime(TimeKey),
+
+    FOREIGN KEY (ProductKey)
+        REFERENCES Star_DimProduct(ProductKey),
+
+    FOREIGN KEY (StoreKey)
+        REFERENCES Star_DimStore(StoreKey),
+
+    FOREIGN KEY (CustomerKey)
+        REFERENCES Star_DimCustomer(CustomerKey),
+
+    FOREIGN KEY (PromotionKey)
+        REFERENCES Star_DimPromotion(PromotionKey)
+);
+
+
+/* =====================================================
+   PART B: INSERT ONE ROW INTO EVERY STAR TABLE
+   ===================================================== */
+
+INSERT INTO Star_DimTime
+VALUES (1, '2026-10-15', 15, 'October', 4, 2026);
+
+INSERT INTO Star_DimProduct
+VALUES (1, 'Milk 1 Litre', 'Dairy', 'Amul');
+
+INSERT INTO Star_DimStore
+VALUES (1, 'Central Supermarket', 'Mumbai', 'Maharashtra');
+
+INSERT INTO Star_DimCustomer
+VALUES (1, 'Aarav Sharma', 'Regular', 'aarav@example.com');
+
+INSERT INTO Star_DimPromotion
+VALUES (1, 'Festive Discount', 'Seasonal',
+        '2026-10-01', '2026-10-31');
+
+INSERT INTO Star_FactSales
+VALUES (1, 1, 1, 1, 1, 1, 10,
+        1000.00, 100.00, 200.00);
+
+
+/* =====================================================
+   PART C: DISPLAY ALL STAR SCHEMA TABLES
+   ===================================================== */
+
+SELECT * FROM Star_DimTime;
+SELECT * FROM Star_DimProduct;
+SELECT * FROM Star_DimStore;
+SELECT * FROM Star_DimCustomer;
+SELECT * FROM Star_DimPromotion;
+SELECT * FROM Star_FactSales;
+
+
+/* =====================================================
+   PART D: STAR SCHEMA JOIN QUERY
+   ===================================================== */
+
+SELECT
+    T.FullDate,
+    T.MonthName,
+    T.CalendarYear,
+
+    P.ProductName,
+    P.CategoryName,
+    P.BrandName,
+
+    S.StoreName,
+    S.City,
+    S.StateName,
+
+    C.CustomerName,
+    C.CustomerType,
+
+    PR.PromotionName,
+    PR.PromotionType,
+
+    F.QuantitySold,
+    F.SalesAmount,
+    F.DiscountAmount,
+    F.Profit
+
+FROM Star_FactSales F
+
+JOIN Star_DimTime T
+    ON F.TimeKey = T.TimeKey
+
+JOIN Star_DimProduct P
+    ON F.ProductKey = P.ProductKey
+
+JOIN Star_DimStore S
+    ON F.StoreKey = S.StoreKey
+
+JOIN Star_DimCustomer C
+    ON F.CustomerKey = C.CustomerKey
+
+JOIN Star_DimPromotion PR
+    ON F.PromotionKey = PR.PromotionKey;
+
+
+/* =====================================================
+   PART E: SNOWFLAKE SCHEMA
+   ===================================================== */
+
+/* Remove old Snowflake tables in dependency order */
+
+DROP TABLE IF EXISTS Snow_FactSales;
+DROP TABLE IF EXISTS Snow_Promotion;
+DROP TABLE IF EXISTS Snow_Customer;
+DROP TABLE IF EXISTS Snow_Store;
+DROP TABLE IF EXISTS Snow_City;
+DROP TABLE IF EXISTS Snow_State;
+DROP TABLE IF EXISTS Snow_Product;
+DROP TABLE IF EXISTS Snow_Category;
+DROP TABLE IF EXISTS Snow_Brand;
+DROP TABLE IF EXISTS Snow_Time;
+
+
+/* 1. TIME DIMENSION */
+
+CREATE TABLE Snow_Time (
+    TimeKey INTEGER PRIMARY KEY,
+    FullDate DATE NOT NULL,
+    DayNumber INTEGER,
+    MonthName VARCHAR(20),
+    QuarterNumber INTEGER,
+    CalendarYear INTEGER
+);
+
+
+/* 2. PRODUCT CATEGORY */
+
+CREATE TABLE Snow_Category (
+    CategoryKey INTEGER PRIMARY KEY,
+    CategoryName VARCHAR(50) NOT NULL
+);
+
+
+/* 3. PRODUCT BRAND */
+
+CREATE TABLE Snow_Brand (
+    BrandKey INTEGER PRIMARY KEY,
+    BrandName VARCHAR(50) NOT NULL
+);
+
+
+/* 4. PRODUCT DIMENSION */
+
+CREATE TABLE Snow_Product (
+    ProductKey INTEGER PRIMARY KEY,
+    ProductName VARCHAR(100) NOT NULL,
+    CategoryKey INTEGER NOT NULL,
+    BrandKey INTEGER NOT NULL,
+
+    FOREIGN KEY (CategoryKey)
+        REFERENCES Snow_Category(CategoryKey),
+
+    FOREIGN KEY (BrandKey)
+        REFERENCES Snow_Brand(BrandKey)
+);
+
+
+/* 5. STATE DIMENSION */
+
+CREATE TABLE Snow_State (
+    StateKey INTEGER PRIMARY KEY,
+    StateName VARCHAR(50) NOT NULL
+);
+
+
+/* 6. CITY DIMENSION */
+
+CREATE TABLE Snow_City (
+    CityKey INTEGER PRIMARY KEY,
+    CityName VARCHAR(50) NOT NULL,
+    StateKey INTEGER NOT NULL,
+
+    FOREIGN KEY (StateKey)
+        REFERENCES Snow_State(StateKey)
+);
+
+
+/* 7. STORE DIMENSION */
+
+CREATE TABLE Snow_Store (
+    StoreKey INTEGER PRIMARY KEY,
+    StoreName VARCHAR(100) NOT NULL,
+    CityKey INTEGER NOT NULL,
+
+    FOREIGN KEY (CityKey)
+        REFERENCES Snow_City(CityKey)
+);
+
+
+/* 8. CUSTOMER DIMENSION */
+
+CREATE TABLE Snow_Customer (
+    CustomerKey INTEGER PRIMARY KEY,
+    CustomerName VARCHAR(100),
+    CustomerType VARCHAR(50),
+    Email VARCHAR(100)
+);
+
+
+/* 9. PROMOTION DIMENSION */
+
+CREATE TABLE Snow_Promotion (
+    PromotionKey INTEGER PRIMARY KEY,
+    PromotionName VARCHAR(100),
+    PromotionType VARCHAR(50),
+    StartDate DATE,
+    EndDate DATE
+);
+
+
+/* 10. SNOWFLAKE FACT TABLE */
+
+CREATE TABLE Snow_FactSales (
+    SalesKey INTEGER PRIMARY KEY,
+    TimeKey INTEGER NOT NULL,
+    ProductKey INTEGER NOT NULL,
+    StoreKey INTEGER NOT NULL,
+    CustomerKey INTEGER NOT NULL,
+    PromotionKey INTEGER NOT NULL,
+
+    QuantitySold INTEGER NOT NULL,
+    SalesAmount DECIMAL(12,2) NOT NULL,
+    DiscountAmount DECIMAL(12,2) NOT NULL,
+    Profit DECIMAL(12,2) NOT NULL,
+
+    FOREIGN KEY (TimeKey)
+        REFERENCES Snow_Time(TimeKey),
+
+    FOREIGN KEY (ProductKey)
+        REFERENCES Snow_Product(ProductKey),
+
+    FOREIGN KEY (StoreKey)
+        REFERENCES Snow_Store(StoreKey),
+
+    FOREIGN KEY (CustomerKey)
+        REFERENCES Snow_Customer(CustomerKey),
+
+    FOREIGN KEY (PromotionKey)
+        REFERENCES Snow_Promotion(PromotionKey)
+);
+
+
+/* =====================================================
+   PART F: INSERT ONE ROW INTO EVERY SNOWFLAKE TABLE
+   ===================================================== */
+
+/* Parent tables first */
+
+INSERT INTO Snow_Time
+VALUES (1, '2026-10-15', 15, 'October', 4, 2026);
+
+INSERT INTO Snow_Category
+VALUES (1, 'Dairy');
+
+INSERT INTO Snow_Brand
+VALUES (1, 'Amul');
+
+INSERT INTO Snow_Product
+VALUES (1, 'Milk 1 Litre', 1, 1);
+
+INSERT INTO Snow_State
+VALUES (1, 'Maharashtra');
+
+INSERT INTO Snow_City
+VALUES (1, 'Mumbai', 1);
+
+INSERT INTO Snow_Store
+VALUES (1, 'Central Supermarket', 1);
+
+INSERT INTO Snow_Customer
+VALUES (1, 'Aarav Sharma', 'Regular', 'aarav@example.com');
+
+INSERT INTO Snow_Promotion
+VALUES (1, 'Festive Discount', 'Seasonal',
+        '2026-10-01', '2026-10-31');
+
+INSERT INTO Snow_FactSales
+VALUES (1, 1, 1, 1, 1, 1, 10,
+        1000.00, 100.00, 200.00);
+
+
+/* =====================================================
+   PART G: DISPLAY ALL SNOWFLAKE TABLES
+   ===================================================== */
+
+SELECT * FROM Snow_Time;
+SELECT * FROM Snow_Category;
+SELECT * FROM Snow_Brand;
+SELECT * FROM Snow_Product;
+SELECT * FROM Snow_State;
+SELECT * FROM Snow_City;
+SELECT * FROM Snow_Store;
+SELECT * FROM Snow_Customer;
+SELECT * FROM Snow_Promotion;
+SELECT * FROM Snow_FactSales;
+
+
+/* =====================================================
+   PART H: SNOWFLAKE SCHEMA JOIN QUERY
+   ===================================================== */
+
+SELECT
+    T.FullDate,
+    T.MonthName,
+    T.CalendarYear,
+
+    P.ProductName,
+    CAT.CategoryName,
+    B.BrandName,
+
+    S.StoreName,
+    CI.CityName,
+    ST.StateName,
+
+    C.CustomerName,
+    C.CustomerType,
+
+    PR.PromotionName,
+    PR.PromotionType,
+
+    F.QuantitySold,
+    F.SalesAmount,
+    F.DiscountAmount,
+    F.Profit
+
+FROM Snow_FactSales F
+
+JOIN Snow_Time T
+    ON F.TimeKey = T.TimeKey
+
+JOIN Snow_Product P
+    ON F.ProductKey = P.ProductKey
+
+JOIN Snow_Category CAT
+    ON P.CategoryKey = CAT.CategoryKey
+
+JOIN Snow_Brand B
+    ON P.BrandKey = B.BrandKey
+
+JOIN Snow_Store S
+    ON F.StoreKey = S.StoreKey
+
+JOIN Snow_City CI
+    ON S.CityKey = CI.CityKey
+
+JOIN Snow_State ST
+    ON CI.StateKey = ST.StateKey
+
+JOIN Snow_Customer C
+    ON F.CustomerKey = C.CustomerKey
+
+JOIN Snow_Promotion PR
+    ON F.PromotionKey = PR.PromotionKey;
+
+
+/* =====================================================
+   PART I: VERIFY ONE ROW PER TABLE
+   ===================================================== */
+
+SELECT 'Star_DimTime' AS TableName, COUNT(*) AS TotalRows
+FROM Star_DimTime
+UNION ALL
+SELECT 'Star_DimProduct', COUNT(*) FROM Star_DimProduct
+UNION ALL
+SELECT 'Star_DimStore', COUNT(*) FROM Star_DimStore
+UNION ALL
+SELECT 'Star_DimCustomer', COUNT(*) FROM Star_DimCustomer
+UNION ALL
+SELECT 'Star_DimPromotion', COUNT(*) FROM Star_DimPromotion
+UNION ALL
+SELECT 'Star_FactSales', COUNT(*) FROM Star_FactSales
+UNION ALL
+SELECT 'Snow_Time', COUNT(*) FROM Snow_Time
+UNION ALL
+SELECT 'Snow_Category', COUNT(*) FROM Snow_Category
+UNION ALL
+SELECT 'Snow_Brand', COUNT(*) FROM Snow_Brand
+UNION ALL
+SELECT 'Snow_Product', COUNT(*) FROM Snow_Product
+UNION ALL
+SELECT 'Snow_State', COUNT(*) FROM Snow_State
+UNION ALL
+SELECT 'Snow_City', COUNT(*) FROM Snow_City
+UNION ALL
+SELECT 'Snow_Store', COUNT(*) FROM Snow_Store
+UNION ALL
+SELECT 'Snow_Customer', COUNT(*) FROM Snow_Customer
+UNION ALL
+SELECT 'Snow_Promotion', COUNT(*) FROM Snow_Promotion
+UNION ALL
+SELECT 'Snow_FactSales', COUNT(*) FROM Snow_FactSales;

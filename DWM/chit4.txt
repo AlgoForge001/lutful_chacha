@@ -1,0 +1,474 @@
+/* =====================================================
+   CHIT NO. 4
+   EXPERIMENT 1 & 2
+   STAR AND SNOWFLAKE SCHEMA:
+   HOSPITAL PATIENT ADMISSIONS
+   SQLITE COMPATIBLE
+   ===================================================== */
+
+
+/* =====================================================
+   PART A: CREATE STAR SCHEMA
+   ===================================================== */
+
+DROP TABLE IF EXISTS Star_FactAdmissions;
+DROP TABLE IF EXISTS Star_DimDiagnosis;
+DROP TABLE IF EXISTS Star_DimDepartment;
+DROP TABLE IF EXISTS Star_DimDoctor;
+DROP TABLE IF EXISTS Star_DimPatient;
+DROP TABLE IF EXISTS Star_DimTime;
+
+
+/* 1. TIME DIMENSION */
+
+CREATE TABLE Star_DimTime (
+    TimeKey INTEGER PRIMARY KEY,
+    FullDate DATE NOT NULL,
+    DayNumber INTEGER,
+    MonthName VARCHAR(20),
+    QuarterNumber INTEGER,
+    CalendarYear INTEGER
+);
+
+
+/* 2. PATIENT DIMENSION */
+
+CREATE TABLE Star_DimPatient (
+    PatientKey INTEGER PRIMARY KEY,
+    PatientName VARCHAR(100),
+    Gender VARCHAR(20),
+    Age INTEGER,
+    Area VARCHAR(100),
+    City VARCHAR(50)
+);
+
+
+/* 3. DOCTOR DIMENSION */
+
+CREATE TABLE Star_DimDoctor (
+    DoctorKey INTEGER PRIMARY KEY,
+    DoctorName VARCHAR(100),
+    Qualification VARCHAR(50),
+    Specialisation VARCHAR(100),
+    DepartmentName VARCHAR(100)
+);
+
+
+/* 4. DEPARTMENT DIMENSION */
+
+CREATE TABLE Star_DimDepartment (
+    DepartmentKey INTEGER PRIMARY KEY,
+    DepartmentName VARCHAR(100),
+    DepartmentLocation VARCHAR(100)
+);
+
+
+/* 5. DIAGNOSIS DIMENSION */
+
+CREATE TABLE Star_DimDiagnosis (
+    DiagnosisKey INTEGER PRIMARY KEY,
+    DiagnosisName VARCHAR(100),
+    DiagnosisCategory VARCHAR(100),
+    Severity VARCHAR(30)
+);
+
+
+/* 6. FACT TABLE */
+
+CREATE TABLE Star_FactAdmissions (
+    AdmissionKey INTEGER PRIMARY KEY,
+    TimeKey INTEGER NOT NULL,
+    PatientKey INTEGER NOT NULL,
+    DoctorKey INTEGER NOT NULL,
+    DepartmentKey INTEGER NOT NULL,
+    DiagnosisKey INTEGER NOT NULL,
+
+    AdmissionsCount INTEGER NOT NULL,
+    LengthOfStayDays INTEGER NOT NULL,
+    TreatmentCost DECIMAL(12,2) NOT NULL,
+    BillAmount DECIMAL(12,2) NOT NULL,
+
+    FOREIGN KEY (TimeKey)
+        REFERENCES Star_DimTime(TimeKey),
+
+    FOREIGN KEY (PatientKey)
+        REFERENCES Star_DimPatient(PatientKey),
+
+    FOREIGN KEY (DoctorKey)
+        REFERENCES Star_DimDoctor(DoctorKey),
+
+    FOREIGN KEY (DepartmentKey)
+        REFERENCES Star_DimDepartment(DepartmentKey),
+
+    FOREIGN KEY (DiagnosisKey)
+        REFERENCES Star_DimDiagnosis(DiagnosisKey)
+);
+
+
+/* =====================================================
+   PART B: INSERT ONE ROW INTO EVERY STAR TABLE
+   ===================================================== */
+
+INSERT INTO Star_DimTime
+VALUES (1, '2026-10-15', 15, 'October', 4, 2026);
+
+INSERT INTO Star_DimPatient
+VALUES (1, 'Aarav Sharma', 'Male', 35,
+        'Andheri', 'Mumbai');
+
+INSERT INTO Star_DimDoctor
+VALUES (1, 'Dr. Priya Mehta', 'MBBS, MD',
+        'Cardiology', 'Cardiology');
+
+INSERT INTO Star_DimDepartment
+VALUES (1, 'Cardiology', 'Block A, Floor 2');
+
+INSERT INTO Star_DimDiagnosis
+VALUES (1, 'Hypertension', 'Cardiovascular', 'Moderate');
+
+INSERT INTO Star_FactAdmissions
+VALUES (1, 1, 1, 1, 1, 1,
+        1, 3, 12000.00, 15000.00);
+
+
+/* =====================================================
+   PART C: DISPLAY ALL STAR TABLES
+   ===================================================== */
+
+SELECT * FROM Star_DimTime;
+SELECT * FROM Star_DimPatient;
+SELECT * FROM Star_DimDoctor;
+SELECT * FROM Star_DimDepartment;
+SELECT * FROM Star_DimDiagnosis;
+SELECT * FROM Star_FactAdmissions;
+
+
+/* =====================================================
+   PART D: STAR SCHEMA JOIN
+   FACT + ALL DIMENSIONS
+   ===================================================== */
+
+SELECT
+    T.FullDate,
+    T.MonthName,
+    T.CalendarYear,
+
+    P.PatientName,
+    P.Gender,
+    P.Age,
+    P.Area,
+    P.City,
+
+    DOC.DoctorName,
+    DOC.Qualification,
+    DOC.Specialisation,
+
+    DEP.DepartmentName,
+    DEP.DepartmentLocation,
+
+    DIA.DiagnosisName,
+    DIA.DiagnosisCategory,
+    DIA.Severity,
+
+    F.AdmissionsCount,
+    F.LengthOfStayDays,
+    F.TreatmentCost,
+    F.BillAmount
+
+FROM Star_FactAdmissions F
+
+JOIN Star_DimTime T
+    ON F.TimeKey = T.TimeKey
+
+JOIN Star_DimPatient P
+    ON F.PatientKey = P.PatientKey
+
+JOIN Star_DimDoctor DOC
+    ON F.DoctorKey = DOC.DoctorKey
+
+JOIN Star_DimDepartment DEP
+    ON F.DepartmentKey = DEP.DepartmentKey
+
+JOIN Star_DimDiagnosis DIA
+    ON F.DiagnosisKey = DIA.DiagnosisKey;
+
+
+/* =====================================================
+   PART E: CREATE SNOWFLAKE SCHEMA
+   ===================================================== */
+
+DROP TABLE IF EXISTS Snow_FactAdmissions;
+DROP TABLE IF EXISTS Snow_Diagnosis;
+DROP TABLE IF EXISTS Snow_Doctor;
+DROP TABLE IF EXISTS Snow_Specialisation;
+DROP TABLE IF EXISTS Snow_Department;
+DROP TABLE IF EXISTS Snow_Patient;
+DROP TABLE IF EXISTS Snow_Area;
+DROP TABLE IF EXISTS Snow_City;
+DROP TABLE IF EXISTS Snow_Time;
+
+
+/* 1. TIME DIMENSION */
+
+CREATE TABLE Snow_Time (
+    TimeKey INTEGER PRIMARY KEY,
+    FullDate DATE NOT NULL,
+    DayNumber INTEGER,
+    MonthName VARCHAR(20),
+    QuarterNumber INTEGER,
+    CalendarYear INTEGER
+);
+
+
+/* 2. CITY DIMENSION */
+
+CREATE TABLE Snow_City (
+    CityKey INTEGER PRIMARY KEY,
+    CityName VARCHAR(50) NOT NULL
+);
+
+
+/* 3. AREA DIMENSION */
+
+CREATE TABLE Snow_Area (
+    AreaKey INTEGER PRIMARY KEY,
+    AreaName VARCHAR(100) NOT NULL,
+    CityKey INTEGER NOT NULL,
+
+    FOREIGN KEY (CityKey)
+        REFERENCES Snow_City(CityKey)
+);
+
+
+/* 4. PATIENT DIMENSION */
+
+CREATE TABLE Snow_Patient (
+    PatientKey INTEGER PRIMARY KEY,
+    PatientName VARCHAR(100),
+    Gender VARCHAR(20),
+    Age INTEGER,
+    AreaKey INTEGER NOT NULL,
+
+    FOREIGN KEY (AreaKey)
+        REFERENCES Snow_Area(AreaKey)
+);
+
+
+/* 5. DEPARTMENT DIMENSION */
+
+CREATE TABLE Snow_Department (
+    DepartmentKey INTEGER PRIMARY KEY,
+    DepartmentName VARCHAR(100),
+    DepartmentLocation VARCHAR(100)
+);
+
+
+/* 6. SPECIALISATION DIMENSION */
+
+CREATE TABLE Snow_Specialisation (
+    SpecialisationKey INTEGER PRIMARY KEY,
+    SpecialisationName VARCHAR(100)
+);
+
+
+/* 7. DOCTOR DIMENSION */
+
+CREATE TABLE Snow_Doctor (
+    DoctorKey INTEGER PRIMARY KEY,
+    DoctorName VARCHAR(100),
+    Qualification VARCHAR(50),
+    SpecialisationKey INTEGER NOT NULL,
+    DepartmentKey INTEGER NOT NULL,
+
+    FOREIGN KEY (SpecialisationKey)
+        REFERENCES Snow_Specialisation(SpecialisationKey),
+
+    FOREIGN KEY (DepartmentKey)
+        REFERENCES Snow_Department(DepartmentKey)
+);
+
+
+/* 8. DIAGNOSIS DIMENSION */
+
+CREATE TABLE Snow_Diagnosis (
+    DiagnosisKey INTEGER PRIMARY KEY,
+    DiagnosisName VARCHAR(100),
+    DiagnosisCategory VARCHAR(100),
+    Severity VARCHAR(30)
+);
+
+
+/* 9. SNOWFLAKE FACT TABLE */
+
+CREATE TABLE Snow_FactAdmissions (
+    AdmissionKey INTEGER PRIMARY KEY,
+    TimeKey INTEGER NOT NULL,
+    PatientKey INTEGER NOT NULL,
+    DoctorKey INTEGER NOT NULL,
+    DepartmentKey INTEGER NOT NULL,
+    DiagnosisKey INTEGER NOT NULL,
+
+    AdmissionsCount INTEGER NOT NULL,
+    LengthOfStayDays INTEGER NOT NULL,
+    TreatmentCost DECIMAL(12,2) NOT NULL,
+    BillAmount DECIMAL(12,2) NOT NULL,
+
+    FOREIGN KEY (TimeKey)
+        REFERENCES Snow_Time(TimeKey),
+
+    FOREIGN KEY (PatientKey)
+        REFERENCES Snow_Patient(PatientKey),
+
+    FOREIGN KEY (DoctorKey)
+        REFERENCES Snow_Doctor(DoctorKey),
+
+    FOREIGN KEY (DepartmentKey)
+        REFERENCES Snow_Department(DepartmentKey),
+
+    FOREIGN KEY (DiagnosisKey)
+        REFERENCES Snow_Diagnosis(DiagnosisKey)
+);
+
+
+/* =====================================================
+   PART F: INSERT ONE ROW INTO EVERY SNOWFLAKE TABLE
+   PARENT TABLES FIRST
+   ===================================================== */
+
+INSERT INTO Snow_Time
+VALUES (1, '2026-10-15', 15, 'October', 4, 2026);
+
+INSERT INTO Snow_City
+VALUES (1, 'Mumbai');
+
+INSERT INTO Snow_Area
+VALUES (1, 'Andheri', 1);
+
+INSERT INTO Snow_Patient
+VALUES (1, 'Aarav Sharma', 'Male', 35, 1);
+
+INSERT INTO Snow_Department
+VALUES (1, 'Cardiology', 'Block A, Floor 2');
+
+INSERT INTO Snow_Specialisation
+VALUES (1, 'Cardiology');
+
+INSERT INTO Snow_Doctor
+VALUES (1, 'Dr. Priya Mehta', 'MBBS, MD', 1, 1);
+
+INSERT INTO Snow_Diagnosis
+VALUES (1, 'Hypertension', 'Cardiovascular', 'Moderate');
+
+INSERT INTO Snow_FactAdmissions
+VALUES (1, 1, 1, 1, 1, 1,
+        1, 3, 12000.00, 15000.00);
+
+
+/* =====================================================
+   PART G: DISPLAY ALL SNOWFLAKE TABLES
+   ===================================================== */
+
+SELECT * FROM Snow_Time;
+SELECT * FROM Snow_City;
+SELECT * FROM Snow_Area;
+SELECT * FROM Snow_Patient;
+SELECT * FROM Snow_Department;
+SELECT * FROM Snow_Specialisation;
+SELECT * FROM Snow_Doctor;
+SELECT * FROM Snow_Diagnosis;
+SELECT * FROM Snow_FactAdmissions;
+
+
+/* =====================================================
+   PART H: SNOWFLAKE SCHEMA JOIN
+   FACT + ALL DIMENSIONS
+   ===================================================== */
+
+SELECT
+    T.FullDate,
+    T.MonthName,
+    T.CalendarYear,
+
+    P.PatientName,
+    P.Gender,
+    P.Age,
+    A.AreaName,
+    C.CityName,
+
+    DOC.DoctorName,
+    DOC.Qualification,
+    SPEC.SpecialisationName,
+
+    DEP.DepartmentName,
+    DEP.DepartmentLocation,
+
+    DIA.DiagnosisName,
+    DIA.DiagnosisCategory,
+    DIA.Severity,
+
+    F.AdmissionsCount,
+    F.LengthOfStayDays,
+    F.TreatmentCost,
+    F.BillAmount
+
+FROM Snow_FactAdmissions F
+
+JOIN Snow_Time T
+    ON F.TimeKey = T.TimeKey
+
+JOIN Snow_Patient P
+    ON F.PatientKey = P.PatientKey
+
+JOIN Snow_Area A
+    ON P.AreaKey = A.AreaKey
+
+JOIN Snow_City C
+    ON A.CityKey = C.CityKey
+
+JOIN Snow_Doctor DOC
+    ON F.DoctorKey = DOC.DoctorKey
+
+JOIN Snow_Specialisation SPEC
+    ON DOC.SpecialisationKey = SPEC.SpecialisationKey
+
+JOIN Snow_Department DEP
+    ON F.DepartmentKey = DEP.DepartmentKey
+
+JOIN Snow_Diagnosis DIA
+    ON F.DiagnosisKey = DIA.DiagnosisKey;
+
+
+/* =====================================================
+   PART I: VERIFY EXACTLY ONE ROW PER TABLE
+   ===================================================== */
+
+SELECT 'Star_DimTime' AS TableName, COUNT(*) AS TotalRows
+FROM Star_DimTime
+UNION ALL
+SELECT 'Star_DimPatient', COUNT(*) FROM Star_DimPatient
+UNION ALL
+SELECT 'Star_DimDoctor', COUNT(*) FROM Star_DimDoctor
+UNION ALL
+SELECT 'Star_DimDepartment', COUNT(*) FROM Star_DimDepartment
+UNION ALL
+SELECT 'Star_DimDiagnosis', COUNT(*) FROM Star_DimDiagnosis
+UNION ALL
+SELECT 'Star_FactAdmissions', COUNT(*) FROM Star_FactAdmissions
+UNION ALL
+SELECT 'Snow_Time', COUNT(*) FROM Snow_Time
+UNION ALL
+SELECT 'Snow_City', COUNT(*) FROM Snow_City
+UNION ALL
+SELECT 'Snow_Area', COUNT(*) FROM Snow_Area
+UNION ALL
+SELECT 'Snow_Patient', COUNT(*) FROM Snow_Patient
+UNION ALL
+SELECT 'Snow_Department', COUNT(*) FROM Snow_Department
+UNION ALL
+SELECT 'Snow_Specialisation', COUNT(*) FROM Snow_Specialisation
+UNION ALL
+SELECT 'Snow_Doctor', COUNT(*) FROM Snow_Doctor
+UNION ALL
+SELECT 'Snow_Diagnosis', COUNT(*) FROM Snow_Diagnosis
+UNION ALL
+SELECT 'Snow_FactAdmissions', COUNT(*) FROM Snow_FactAdmissions;

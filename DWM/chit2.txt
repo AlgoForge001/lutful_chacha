@@ -1,0 +1,358 @@
+
+-- 1. Time dimension
+CREATE TABLE Star_DimTime (
+    TimeKey INTEGER PRIMARY KEY,
+    FullDate DATE NOT NULL,
+    DayNumber INTEGER,
+    MonthName VARCHAR(20),
+    QuarterNumber INTEGER,
+    CalendarYear INTEGER
+);
+
+-- 2. Product dimension
+CREATE TABLE Star_DimProduct (
+    ProductKey INTEGER PRIMARY KEY,
+    ProductName VARCHAR(100),
+    CategoryName VARCHAR(50),
+    SupplierName VARCHAR(100)
+);
+
+-- 3. Retailer dimension
+CREATE TABLE Star_DimRetailer (
+    RetailerKey INTEGER PRIMARY KEY,
+    RetailerName VARCHAR(100),
+    Contact VARCHAR(100),
+    RetailerType VARCHAR(50)
+);
+
+-- 4. Location dimension
+CREATE TABLE Star_DimLocation (
+    LocationKey INTEGER PRIMARY KEY,
+    City VARCHAR(50),
+    StateName VARCHAR(50),
+    RegionName VARCHAR(50)
+);
+
+-- 5. Salesperson dimension
+CREATE TABLE Star_DimSalesperson (
+    SalespersonKey INTEGER PRIMARY KEY,
+    SalespersonName VARCHAR(100),
+    EmployeeCode VARCHAR(20)
+);
+
+-- 6. Fact table
+CREATE TABLE Star_FactFurnitureSales (
+    SalesKey INTEGER PRIMARY KEY,
+    TimeKey INTEGER NOT NULL,
+    ProductKey INTEGER NOT NULL,
+    RetailerKey INTEGER NOT NULL,
+    LocationKey INTEGER NOT NULL,
+    SalespersonKey INTEGER NOT NULL,
+    UnitsSold INTEGER NOT NULL,
+    SalesAmount DECIMAL(12,2) NOT NULL,
+    DiscountAmount DECIMAL(12,2) NOT NULL,
+    Profit DECIMAL(12,2) NOT NULL,
+
+    FOREIGN KEY (TimeKey)
+        REFERENCES Star_DimTime(TimeKey),
+    FOREIGN KEY (ProductKey)
+        REFERENCES Star_DimProduct(ProductKey),
+    FOREIGN KEY (RetailerKey)
+        REFERENCES Star_DimRetailer(RetailerKey),
+    FOREIGN KEY (LocationKey)
+        REFERENCES Star_DimLocation(LocationKey),
+    FOREIGN KEY (SalespersonKey)
+        REFERENCES Star_DimSalesperson(SalespersonKey)
+);
+
+
+INSERT INTO Star_DimTime
+VALUES (1, '2026-10-15', 15, 'October', 4, 2026);
+
+INSERT INTO Star_DimProduct
+VALUES (1, 'Wooden Dining Table', 'Dining Furniture',
+        'Oakwood Suppliers');
+
+INSERT INTO Star_DimRetailer
+VALUES (1, 'City Furniture Store', 'retailer@example.com',
+        'Retail Store');
+
+INSERT INTO Star_DimLocation
+VALUES (1, 'Mumbai', 'Maharashtra', 'West');
+
+INSERT INTO Star_DimSalesperson
+VALUES (1, 'Rahul Sharma', 'EMP101');
+
+INSERT INTO Star_FactFurnitureSales
+VALUES (1, 1, 1, 1, 1, 1, 10,
+        50000.00, 5000.00, 10000.00);
+
+
+
+-- Remove previous Snowflake tables if they exist
+DROP TABLE IF EXISTS Snow_FactFurnitureSales;
+DROP TABLE IF EXISTS Snow_Salesperson;
+DROP TABLE IF EXISTS Snow_Retailer;
+DROP TABLE IF EXISTS Snow_Location;
+DROP TABLE IF EXISTS Snow_City;
+DROP TABLE IF EXISTS Snow_State;
+DROP TABLE IF EXISTS Snow_Region;
+DROP TABLE IF EXISTS Snow_Product;
+DROP TABLE IF EXISTS Snow_Category;
+DROP TABLE IF EXISTS Snow_Supplier;
+DROP TABLE IF EXISTS Snow_Time;
+
+-- 1. Time
+CREATE TABLE Snow_Time (
+    TimeKey INTEGER PRIMARY KEY,
+    FullDate DATE NOT NULL,
+    DayNumber INTEGER,
+    MonthName VARCHAR(20),
+    QuarterNumber INTEGER,
+    CalendarYear INTEGER
+);
+
+-- 2. Product category
+CREATE TABLE Snow_Category (
+    CategoryKey INTEGER PRIMARY KEY,
+    CategoryName VARCHAR(50) NOT NULL
+);
+
+-- 3. Supplier
+CREATE TABLE Snow_Supplier (
+    SupplierKey INTEGER PRIMARY KEY,
+    SupplierName VARCHAR(100) NOT NULL
+);
+
+-- 4. Product
+CREATE TABLE Snow_Product (
+    ProductKey INTEGER PRIMARY KEY,
+    ProductName VARCHAR(100) NOT NULL,
+    CategoryKey INTEGER NOT NULL,
+    SupplierKey INTEGER NOT NULL,
+    FOREIGN KEY (CategoryKey)
+        REFERENCES Snow_Category(CategoryKey),
+    FOREIGN KEY (SupplierKey)
+        REFERENCES Snow_Supplier(SupplierKey)
+);
+
+-- 5. Retailer
+CREATE TABLE Snow_Retailer (
+    RetailerKey INTEGER PRIMARY KEY,
+    RetailerName VARCHAR(100),
+    Contact VARCHAR(100),
+    RetailerType VARCHAR(50)
+);
+
+-- 6. Region
+CREATE TABLE Snow_Region (
+    RegionKey INTEGER PRIMARY KEY,
+    RegionName VARCHAR(50) NOT NULL
+);
+
+-- 7. State
+CREATE TABLE Snow_State (
+    StateKey INTEGER PRIMARY KEY,
+    StateName VARCHAR(50) NOT NULL,
+    RegionKey INTEGER NOT NULL,
+    FOREIGN KEY (RegionKey)
+        REFERENCES Snow_Region(RegionKey)
+);
+
+-- 8. City
+CREATE TABLE Snow_City (
+    CityKey INTEGER PRIMARY KEY,
+    CityName VARCHAR(50) NOT NULL,
+    StateKey INTEGER NOT NULL,
+    FOREIGN KEY (StateKey)
+        REFERENCES Snow_State(StateKey)
+);
+
+-- 9. Location
+CREATE TABLE Snow_Location (
+    LocationKey INTEGER PRIMARY KEY,
+    LocationName VARCHAR(100),
+    CityKey INTEGER NOT NULL,
+    FOREIGN KEY (CityKey)
+        REFERENCES Snow_City(CityKey)
+);
+
+-- 10. Salesperson
+CREATE TABLE Snow_Salesperson (
+    SalespersonKey INTEGER PRIMARY KEY,
+    SalespersonName VARCHAR(100),
+    EmployeeCode VARCHAR(20)
+);
+
+-- 11. Fact table
+CREATE TABLE Snow_FactFurnitureSales (
+    SalesKey INTEGER PRIMARY KEY,
+    TimeKey INTEGER NOT NULL,
+    ProductKey INTEGER NOT NULL,
+    RetailerKey INTEGER NOT NULL,
+    LocationKey INTEGER NOT NULL,
+    SalespersonKey INTEGER NOT NULL,
+    UnitsSold INTEGER NOT NULL,
+    SalesAmount DECIMAL(12,2) NOT NULL,
+    DiscountAmount DECIMAL(12,2) NOT NULL,
+    Profit DECIMAL(12,2) NOT NULL,
+
+    FOREIGN KEY (TimeKey)
+        REFERENCES Snow_Time(TimeKey),
+    FOREIGN KEY (ProductKey)
+        REFERENCES Snow_Product(ProductKey),
+    FOREIGN KEY (RetailerKey)
+        REFERENCES Snow_Retailer(RetailerKey),
+    FOREIGN KEY (LocationKey)
+        REFERENCES Snow_Location(LocationKey),
+    FOREIGN KEY (SalespersonKey)
+        REFERENCES Snow_Salesperson(SalespersonKey)
+);
+
+
+
+-- 1. Time
+INSERT INTO Snow_Time
+VALUES (1, '2026-10-15', 15, 'October', 4, 2026);
+
+-- 2. Category
+INSERT INTO Snow_Category
+VALUES (1, 'Dining Furniture');
+
+-- 3. Supplier
+INSERT INTO Snow_Supplier
+VALUES (1, 'Oakwood Suppliers');
+
+-- 4. Product
+INSERT INTO Snow_Product
+VALUES (1, 'Wooden Dining Table', 1, 1);
+
+-- 5. Retailer
+INSERT INTO Snow_Retailer
+VALUES (1, 'City Furniture Store',
+        'retailer@example.com', 'Retail Store');
+
+-- 6. Region
+INSERT INTO Snow_Region
+VALUES (1, 'West');
+
+-- 7. State
+INSERT INTO Snow_State
+VALUES (1, 'Maharashtra', 1);
+
+-- 8. City
+INSERT INTO Snow_City
+VALUES (1, 'Mumbai', 1);
+
+-- 9. Location
+INSERT INTO Snow_Location
+VALUES (1, 'Mumbai Warehouse', 1);
+
+-- 10. Salesperson
+INSERT INTO Snow_Salesperson
+VALUES (1, 'Rahul Sharma', 'EMP101');
+
+-- 11. Fact
+INSERT INTO Snow_FactFurnitureSales
+VALUES (1, 1, 1, 1, 1, 1, 10,
+        50000.00, 5000.00, 10000.00);
+
+
+
+
+SELECT * FROM Star_DimTime;
+SELECT * FROM Star_DimProduct;
+SELECT * FROM Star_DimRetailer;
+SELECT * FROM Star_DimLocation;
+SELECT * FROM Star_DimSalesperson;
+SELECT * FROM Star_FactFurnitureSales;
+
+
+
+SELECT * FROM Snow_Time;
+SELECT * FROM Snow_Category;
+SELECT * FROM Snow_Supplier;
+SELECT * FROM Snow_Product;
+SELECT * FROM Snow_Retailer;
+SELECT * FROM Snow_Region;
+SELECT * FROM Snow_State;
+SELECT * FROM Snow_City;
+SELECT * FROM Snow_Location;
+SELECT * FROM Snow_Salesperson;
+SELECT * FROM Snow_FactFurnitureSales;
+
+
+
+SELECT
+    T.FullDate,
+    T.MonthName,
+    T.CalendarYear,
+    P.ProductName,
+    P.CategoryName,
+    P.SupplierName,
+    R.RetailerName,
+    R.RetailerType,
+    L.City,
+    L.StateName,
+    L.RegionName,
+    S.SalespersonName,
+    S.EmployeeCode,
+    F.UnitsSold,
+    F.SalesAmount,
+    F.DiscountAmount,
+    F.Profit
+FROM Star_FactFurnitureSales F
+JOIN Star_DimTime T
+    ON F.TimeKey = T.TimeKey
+JOIN Star_DimProduct P
+    ON F.ProductKey = P.ProductKey
+JOIN Star_DimRetailer R
+    ON F.RetailerKey = R.RetailerKey
+JOIN Star_DimLocation L
+    ON F.LocationKey = L.LocationKey
+JOIN Star_DimSalesperson S
+    ON F.SalespersonKey = S.SalespersonKey;
+
+
+
+
+SELECT
+    T.FullDate,
+    T.MonthName,
+    T.CalendarYear,
+    P.ProductName,
+    C.CategoryName,
+    SU.SupplierName,
+    R.RetailerName,
+    R.RetailerType,
+    CI.CityName,
+    ST.StateName,
+    RG.RegionName,
+    L.LocationName,
+    SP.SalespersonName,
+    SP.EmployeeCode,
+    F.UnitsSold,
+    F.SalesAmount,
+    F.DiscountAmount,
+    F.Profit
+FROM Snow_FactFurnitureSales F
+JOIN Snow_Time T
+    ON F.TimeKey = T.TimeKey
+JOIN Snow_Product P
+    ON F.ProductKey = P.ProductKey
+JOIN Snow_Category C
+    ON P.CategoryKey = C.CategoryKey
+JOIN Snow_Supplier SU
+    ON P.SupplierKey = SU.SupplierKey
+JOIN Snow_Retailer R
+    ON F.RetailerKey = R.RetailerKey
+JOIN Snow_Location L
+    ON F.LocationKey = L.LocationKey
+JOIN Snow_City CI
+    ON L.CityKey = CI.CityKey
+JOIN Snow_State ST
+    ON CI.StateKey = ST.StateKey
+JOIN Snow_Region RG
+    ON ST.RegionKey = RG.RegionKey
+JOIN Snow_Salesperson SP
+    ON F.SalespersonKey = SP.SalespersonKey;

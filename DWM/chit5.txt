@@ -1,0 +1,506 @@
+/* =====================================================
+   CHIT NO. 5
+   EXPERIMENT 1 & 2
+   STAR AND SNOWFLAKE SCHEMA:
+   AIRLINE TICKET RESERVATION
+   SQLITE ONLINE COMPILER
+   ===================================================== */
+
+
+/* =====================================================
+   PART A: CREATE STAR SCHEMA
+   ===================================================== */
+
+DROP TABLE IF EXISTS Star_FactBookings;
+DROP TABLE IF EXISTS Star_DimBookingAgent;
+DROP TABLE IF EXISTS Star_DimPassenger;
+DROP TABLE IF EXISTS Star_DimRoute;
+DROP TABLE IF EXISTS Star_DimFlight;
+DROP TABLE IF EXISTS Star_DimTime;
+
+
+/* 1. TIME DIMENSION */
+
+CREATE TABLE Star_DimTime (
+    TimeKey INTEGER PRIMARY KEY,
+    FullDate DATE NOT NULL,
+    DayNumber INTEGER,
+    MonthName VARCHAR(20),
+    QuarterNumber INTEGER,
+    CalendarYear INTEGER
+);
+
+
+/* 2. FLIGHT DIMENSION */
+
+CREATE TABLE Star_DimFlight (
+    FlightKey INTEGER PRIMARY KEY,
+    FlightNumber VARCHAR(20) NOT NULL,
+    AirlineName VARCHAR(100),
+    AircraftType VARCHAR(50)
+);
+
+
+/* 3. ROUTE DIMENSION */
+
+CREATE TABLE Star_DimRoute (
+    RouteKey INTEGER PRIMARY KEY,
+    RouteCode VARCHAR(20),
+    OriginAirportCode VARCHAR(10),
+    OriginAirportName VARCHAR(100),
+    DestinationAirportCode VARCHAR(10),
+    DestinationAirportName VARCHAR(100)
+);
+
+
+/* 4. PASSENGER DIMENSION */
+
+CREATE TABLE Star_DimPassenger (
+    PassengerKey INTEGER PRIMARY KEY,
+    PassengerName VARCHAR(100),
+    Gender VARCHAR(20),
+    PassengerType VARCHAR(50)
+);
+
+
+/* 5. BOOKING AGENT DIMENSION */
+
+CREATE TABLE Star_DimBookingAgent (
+    AgentKey INTEGER PRIMARY KEY,
+    AgentName VARCHAR(100),
+    AgencyName VARCHAR(100),
+    BookingChannel VARCHAR(50)
+);
+
+
+/* 6. FACT TABLE */
+
+CREATE TABLE Star_FactBookings (
+    BookingKey INTEGER PRIMARY KEY,
+    TimeKey INTEGER NOT NULL,
+    FlightKey INTEGER NOT NULL,
+    RouteKey INTEGER NOT NULL,
+    PassengerKey INTEGER NOT NULL,
+    AgentKey INTEGER NOT NULL,
+
+    TicketsSold INTEGER NOT NULL,
+    FareAmount DECIMAL(12,2) NOT NULL,
+    SeatOccupancyPercent DECIMAL(5,2) NOT NULL,
+    Cancellations INTEGER NOT NULL,
+
+    FOREIGN KEY (TimeKey)
+        REFERENCES Star_DimTime(TimeKey),
+
+    FOREIGN KEY (FlightKey)
+        REFERENCES Star_DimFlight(FlightKey),
+
+    FOREIGN KEY (RouteKey)
+        REFERENCES Star_DimRoute(RouteKey),
+
+    FOREIGN KEY (PassengerKey)
+        REFERENCES Star_DimPassenger(PassengerKey),
+
+    FOREIGN KEY (AgentKey)
+        REFERENCES Star_DimBookingAgent(AgentKey)
+);
+
+
+/* =====================================================
+   PART B: INSERT ONE ROW INTO EVERY STAR TABLE
+   ===================================================== */
+
+INSERT INTO Star_DimTime
+VALUES (1, '2026-10-15', 15, 'October', 4, 2026);
+
+INSERT INTO Star_DimFlight
+VALUES (1, 'AI101', 'Air India', 'Airbus A320');
+
+INSERT INTO Star_DimRoute
+VALUES (
+    1,
+    'BOM-DEL',
+    'BOM',
+    'Chhatrapati Shivaji Maharaj International Airport',
+    'DEL',
+    'Indira Gandhi International Airport'
+);
+
+INSERT INTO Star_DimPassenger
+VALUES (1, 'Aarav Sharma', 'Male', 'Adult');
+
+INSERT INTO Star_DimBookingAgent
+VALUES (1, 'Rahul Travels', 'City Travel Agency', 'Travel Agency');
+
+INSERT INTO Star_FactBookings
+VALUES (1, 1, 1, 1, 1, 1, 1, 7500.00, 80.00, 0);
+
+
+/* =====================================================
+   PART C: DISPLAY ALL STAR TABLES
+   ===================================================== */
+
+SELECT * FROM Star_DimTime;
+SELECT * FROM Star_DimFlight;
+SELECT * FROM Star_DimRoute;
+SELECT * FROM Star_DimPassenger;
+SELECT * FROM Star_DimBookingAgent;
+SELECT * FROM Star_FactBookings;
+
+
+/* =====================================================
+   PART D: STAR SCHEMA JOIN QUERY
+   FACT + ALL DIMENSIONS
+   ===================================================== */
+
+SELECT
+    T.FullDate,
+    T.MonthName,
+    T.CalendarYear,
+
+    FL.FlightNumber,
+    FL.AirlineName,
+    FL.AircraftType,
+
+    R.RouteCode,
+    R.OriginAirportCode,
+    R.OriginAirportName,
+    R.DestinationAirportCode,
+    R.DestinationAirportName,
+
+    P.PassengerName,
+    P.Gender,
+    P.PassengerType,
+
+    A.AgentName,
+    A.AgencyName,
+    A.BookingChannel,
+
+    F.TicketsSold,
+    F.FareAmount,
+    F.SeatOccupancyPercent,
+    F.Cancellations
+
+FROM Star_FactBookings F
+
+JOIN Star_DimTime T
+    ON F.TimeKey = T.TimeKey
+
+JOIN Star_DimFlight FL
+    ON F.FlightKey = FL.FlightKey
+
+JOIN Star_DimRoute R
+    ON F.RouteKey = R.RouteKey
+
+JOIN Star_DimPassenger P
+    ON F.PassengerKey = P.PassengerKey
+
+JOIN Star_DimBookingAgent A
+    ON F.AgentKey = A.AgentKey;
+
+
+/* =====================================================
+   PART E: CREATE SNOWFLAKE SCHEMA
+   ===================================================== */
+
+DROP TABLE IF EXISTS Snow_FactBookings;
+DROP TABLE IF EXISTS Snow_BookingAgent;
+DROP TABLE IF EXISTS Snow_Passenger;
+DROP TABLE IF EXISTS Snow_Route;
+DROP TABLE IF EXISTS Snow_Flight;
+DROP TABLE IF EXISTS Snow_DestinationAirport;
+DROP TABLE IF EXISTS Snow_OriginAirport;
+DROP TABLE IF EXISTS Snow_AircraftType;
+DROP TABLE IF EXISTS Snow_Time;
+
+
+/* 1. TIME DIMENSION */
+
+CREATE TABLE Snow_Time (
+    TimeKey INTEGER PRIMARY KEY,
+    FullDate DATE NOT NULL,
+    DayNumber INTEGER,
+    MonthName VARCHAR(20),
+    QuarterNumber INTEGER,
+    CalendarYear INTEGER
+);
+
+
+/* 2. AIRCRAFT TYPE DIMENSION */
+
+CREATE TABLE Snow_AircraftType (
+    AircraftTypeKey INTEGER PRIMARY KEY,
+    AircraftTypeName VARCHAR(50) NOT NULL
+);
+
+
+/* 3. FLIGHT DIMENSION */
+
+CREATE TABLE Snow_Flight (
+    FlightKey INTEGER PRIMARY KEY,
+    FlightNumber VARCHAR(20) NOT NULL,
+    AirlineName VARCHAR(100),
+    AircraftTypeKey INTEGER NOT NULL,
+
+    FOREIGN KEY (AircraftTypeKey)
+        REFERENCES Snow_AircraftType(AircraftTypeKey)
+);
+
+
+/* 4. ORIGIN AIRPORT DIMENSION */
+
+CREATE TABLE Snow_OriginAirport (
+    OriginAirportKey INTEGER PRIMARY KEY,
+    AirportCode VARCHAR(10) NOT NULL,
+    AirportName VARCHAR(100) NOT NULL,
+    CityName VARCHAR(50)
+);
+
+
+/* 5. DESTINATION AIRPORT DIMENSION */
+
+CREATE TABLE Snow_DestinationAirport (
+    DestinationAirportKey INTEGER PRIMARY KEY,
+    AirportCode VARCHAR(10) NOT NULL,
+    AirportName VARCHAR(100) NOT NULL,
+    CityName VARCHAR(50)
+);
+
+
+/* 6. ROUTE DIMENSION */
+
+CREATE TABLE Snow_Route (
+    RouteKey INTEGER PRIMARY KEY,
+    RouteCode VARCHAR(20),
+    OriginAirportKey INTEGER NOT NULL,
+    DestinationAirportKey INTEGER NOT NULL,
+
+    FOREIGN KEY (OriginAirportKey)
+        REFERENCES Snow_OriginAirport(OriginAirportKey),
+
+    FOREIGN KEY (DestinationAirportKey)
+        REFERENCES Snow_DestinationAirport(DestinationAirportKey)
+);
+
+
+/* 7. PASSENGER DIMENSION */
+
+CREATE TABLE Snow_Passenger (
+    PassengerKey INTEGER PRIMARY KEY,
+    PassengerName VARCHAR(100),
+    Gender VARCHAR(20),
+    PassengerType VARCHAR(50)
+);
+
+
+/* 8. BOOKING AGENT DIMENSION */
+
+CREATE TABLE Snow_BookingAgent (
+    AgentKey INTEGER PRIMARY KEY,
+    AgentName VARCHAR(100),
+    AgencyName VARCHAR(100),
+    BookingChannel VARCHAR(50)
+);
+
+
+/* 9. SNOWFLAKE FACT TABLE */
+
+CREATE TABLE Snow_FactBookings (
+    BookingKey INTEGER PRIMARY KEY,
+    TimeKey INTEGER NOT NULL,
+    FlightKey INTEGER NOT NULL,
+    RouteKey INTEGER NOT NULL,
+    PassengerKey INTEGER NOT NULL,
+    AgentKey INTEGER NOT NULL,
+
+    TicketsSold INTEGER NOT NULL,
+    FareAmount DECIMAL(12,2) NOT NULL,
+    SeatOccupancyPercent DECIMAL(5,2) NOT NULL,
+    Cancellations INTEGER NOT NULL,
+
+    FOREIGN KEY (TimeKey)
+        REFERENCES Snow_Time(TimeKey),
+
+    FOREIGN KEY (FlightKey)
+        REFERENCES Snow_Flight(FlightKey),
+
+    FOREIGN KEY (RouteKey)
+        REFERENCES Snow_Route(RouteKey),
+
+    FOREIGN KEY (PassengerKey)
+        REFERENCES Snow_Passenger(PassengerKey),
+
+    FOREIGN KEY (AgentKey)
+        REFERENCES Snow_BookingAgent(AgentKey)
+);
+
+
+/* =====================================================
+   PART F: INSERT ONE ROW INTO EVERY SNOWFLAKE TABLE
+   PARENT TABLES FIRST
+   ===================================================== */
+
+INSERT INTO Snow_Time
+VALUES (1, '2026-10-15', 15, 'October', 4, 2026);
+
+INSERT INTO Snow_AircraftType
+VALUES (1, 'Airbus A320');
+
+INSERT INTO Snow_Flight
+VALUES (1, 'AI101', 'Air India', 1);
+
+INSERT INTO Snow_OriginAirport
+VALUES (
+    1,
+    'BOM',
+    'Chhatrapati Shivaji Maharaj International Airport',
+    'Mumbai'
+);
+
+INSERT INTO Snow_DestinationAirport
+VALUES (
+    1,
+    'DEL',
+    'Indira Gandhi International Airport',
+    'Delhi'
+);
+
+INSERT INTO Snow_Route
+VALUES (1, 'BOM-DEL', 1, 1);
+
+INSERT INTO Snow_Passenger
+VALUES (1, 'Aarav Sharma', 'Male', 'Adult');
+
+INSERT INTO Snow_BookingAgent
+VALUES (1, 'Rahul Travels', 'City Travel Agency', 'Travel Agency');
+
+INSERT INTO Snow_FactBookings
+VALUES (1, 1, 1, 1, 1, 1, 1, 7500.00, 80.00, 0);
+
+
+/* =====================================================
+   PART G: DISPLAY ALL SNOWFLAKE TABLES
+   ===================================================== */
+
+SELECT * FROM Snow_Time;
+SELECT * FROM Snow_AircraftType;
+SELECT * FROM Snow_Flight;
+SELECT * FROM Snow_OriginAirport;
+SELECT * FROM Snow_DestinationAirport;
+SELECT * FROM Snow_Route;
+SELECT * FROM Snow_Passenger;
+SELECT * FROM Snow_BookingAgent;
+SELECT * FROM Snow_FactBookings;
+
+
+/* =====================================================
+   PART H: SNOWFLAKE SCHEMA JOIN QUERY
+   FACT + ALL DIMENSIONS
+   ===================================================== */
+
+SELECT
+    T.FullDate,
+    T.MonthName,
+    T.CalendarYear,
+
+    FL.FlightNumber,
+    FL.AirlineName,
+    AT.AircraftTypeName,
+
+    R.RouteCode,
+
+    OA.AirportCode AS OriginCode,
+    OA.AirportName AS OriginAirport,
+    OA.CityName AS OriginCity,
+
+    DA.AirportCode AS DestinationCode,
+    DA.AirportName AS DestinationAirport,
+    DA.CityName AS DestinationCity,
+
+    P.PassengerName,
+    P.Gender,
+    P.PassengerType,
+
+    A.AgentName,
+    A.AgencyName,
+    A.BookingChannel,
+
+    F.TicketsSold,
+    F.FareAmount,
+    F.SeatOccupancyPercent,
+    F.Cancellations
+
+FROM Snow_FactBookings F
+
+JOIN Snow_Time T
+    ON F.TimeKey = T.TimeKey
+
+JOIN Snow_Flight FL
+    ON F.FlightKey = FL.FlightKey
+
+JOIN Snow_AircraftType AT
+    ON FL.AircraftTypeKey = AT.AircraftTypeKey
+
+JOIN Snow_Route R
+    ON F.RouteKey = R.RouteKey
+
+JOIN Snow_OriginAirport OA
+    ON R.OriginAirportKey = OA.OriginAirportKey
+
+JOIN Snow_DestinationAirport DA
+    ON R.DestinationAirportKey = DA.DestinationAirportKey
+
+JOIN Snow_Passenger P
+    ON F.PassengerKey = P.PassengerKey
+
+JOIN Snow_BookingAgent A
+    ON F.AgentKey = A.AgentKey;
+
+
+/* =====================================================
+   PART I: VERIFY EXACTLY ONE ROW PER TABLE
+   ===================================================== */
+
+SELECT 'Star_DimTime' AS TableName, COUNT(*) AS TotalRows
+FROM Star_DimTime
+
+UNION ALL
+SELECT 'Star_DimFlight', COUNT(*) FROM Star_DimFlight
+
+UNION ALL
+SELECT 'Star_DimRoute', COUNT(*) FROM Star_DimRoute
+
+UNION ALL
+SELECT 'Star_DimPassenger', COUNT(*) FROM Star_DimPassenger
+
+UNION ALL
+SELECT 'Star_DimBookingAgent', COUNT(*) FROM Star_DimBookingAgent
+
+UNION ALL
+SELECT 'Star_FactBookings', COUNT(*) FROM Star_FactBookings
+
+UNION ALL
+SELECT 'Snow_Time', COUNT(*) FROM Snow_Time
+
+UNION ALL
+SELECT 'Snow_AircraftType', COUNT(*) FROM Snow_AircraftType
+
+UNION ALL
+SELECT 'Snow_Flight', COUNT(*) FROM Snow_Flight
+
+UNION ALL
+SELECT 'Snow_OriginAirport', COUNT(*) FROM Snow_OriginAirport
+
+UNION ALL
+SELECT 'Snow_DestinationAirport', COUNT(*) FROM Snow_DestinationAirport
+
+UNION ALL
+SELECT 'Snow_Route', COUNT(*) FROM Snow_Route
+
+UNION ALL
+SELECT 'Snow_Passenger', COUNT(*) FROM Snow_Passenger
+
+UNION ALL
+SELECT 'Snow_BookingAgent', COUNT(*) FROM Snow_BookingAgent
+
+UNION ALL
+SELECT 'Snow_FactBookings', COUNT(*) FROM Snow_FactBookings;

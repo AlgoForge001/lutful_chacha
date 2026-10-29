@@ -1,0 +1,483 @@
+/* =====================================================
+   CHIT NO. 6
+   EXPERIMENT 1 & 2
+   STAR AND SNOWFLAKE SCHEMA:
+   COLLEGE ADMISSIONS AND RESULTS
+   SQLITE ONLINE COMPILER
+   ===================================================== */
+
+
+/* =====================================================
+   PART A: CREATE STAR SCHEMA
+   ===================================================== */
+
+DROP TABLE IF EXISTS Star_FactAdmissions;
+DROP TABLE IF EXISTS Star_DimCategory;
+DROP TABLE IF EXISTS Star_DimFaculty;
+DROP TABLE IF EXISTS Star_DimCourse;
+DROP TABLE IF EXISTS Star_DimStudent;
+DROP TABLE IF EXISTS Star_DimTime;
+
+
+/* 1. TIME DIMENSION */
+
+CREATE TABLE Star_DimTime (
+    TimeKey INTEGER PRIMARY KEY,
+    AcademicYear VARCHAR(20) NOT NULL,
+    StartYear INTEGER,
+    EndYear INTEGER
+);
+
+
+/* 2. STUDENT DIMENSION */
+
+CREATE TABLE Star_DimStudent (
+    StudentKey INTEGER PRIMARY KEY,
+    StudentName VARCHAR(100),
+    Gender VARCHAR(20),
+    City VARCHAR(50),
+    StateName VARCHAR(50)
+);
+
+
+/* 3. COURSE DIMENSION */
+
+CREATE TABLE Star_DimCourse (
+    CourseKey INTEGER PRIMARY KEY,
+    CourseName VARCHAR(100),
+    BranchName VARCHAR(100),
+    DepartmentName VARCHAR(100)
+);
+
+
+/* 4. FACULTY DIMENSION */
+
+CREATE TABLE Star_DimFaculty (
+    FacultyKey INTEGER PRIMARY KEY,
+    FacultyName VARCHAR(100),
+    Designation VARCHAR(50)
+);
+
+
+/* 5. CATEGORY DIMENSION */
+
+CREATE TABLE Star_DimCategory (
+    CategoryKey INTEGER PRIMARY KEY,
+    CategoryName VARCHAR(50),
+    CategoryDescription VARCHAR(100)
+);
+
+
+/* 6. FACT TABLE */
+
+CREATE TABLE Star_FactAdmissions (
+    AdmissionFactKey INTEGER PRIMARY KEY,
+    TimeKey INTEGER NOT NULL,
+    StudentKey INTEGER NOT NULL,
+    CourseKey INTEGER NOT NULL,
+    FacultyKey INTEGER NOT NULL,
+    CategoryKey INTEGER NOT NULL,
+
+    ApplicationsReceived INTEGER NOT NULL,
+    SeatsFilled INTEGER NOT NULL,
+    FeesCollected DECIMAL(12,2) NOT NULL,
+    AverageMarks DECIMAL(5,2) NOT NULL,
+    PassPercentage DECIMAL(5,2) NOT NULL,
+
+    FOREIGN KEY (TimeKey)
+        REFERENCES Star_DimTime(TimeKey),
+
+    FOREIGN KEY (StudentKey)
+        REFERENCES Star_DimStudent(StudentKey),
+
+    FOREIGN KEY (CourseKey)
+        REFERENCES Star_DimCourse(CourseKey),
+
+    FOREIGN KEY (FacultyKey)
+        REFERENCES Star_DimFaculty(FacultyKey),
+
+    FOREIGN KEY (CategoryKey)
+        REFERENCES Star_DimCategory(CategoryKey)
+);
+
+
+/* =====================================================
+   PART B: INSERT ONE ROW INTO EVERY STAR TABLE
+   ===================================================== */
+
+INSERT INTO Star_DimTime
+VALUES (1, '2026-2027', 2026, 2027);
+
+INSERT INTO Star_DimStudent
+VALUES (1, 'Aarav Sharma', 'Male', 'Mumbai', 'Maharashtra');
+
+INSERT INTO Star_DimCourse
+VALUES (1, 'B.Tech Computer Science',
+        'Computer Science', 'Engineering');
+
+INSERT INTO Star_DimFaculty
+VALUES (1, 'Dr. Priya Mehta', 'Professor');
+
+INSERT INTO Star_DimCategory
+VALUES (1, 'General', 'General Admission Category');
+
+INSERT INTO Star_FactAdmissions
+VALUES (1, 1, 1, 1, 1, 1,
+        100, 80, 400000.00, 78.50, 90.00);
+
+
+/* =====================================================
+   PART C: DISPLAY ALL STAR SCHEMA TABLES
+   ===================================================== */
+
+SELECT * FROM Star_DimTime;
+SELECT * FROM Star_DimStudent;
+SELECT * FROM Star_DimCourse;
+SELECT * FROM Star_DimFaculty;
+SELECT * FROM Star_DimCategory;
+SELECT * FROM Star_FactAdmissions;
+
+
+/* =====================================================
+   PART D: STAR SCHEMA JOIN QUERY
+   FACT + ALL DIMENSIONS
+   ===================================================== */
+
+SELECT
+    T.AcademicYear,
+    T.StartYear,
+    T.EndYear,
+
+    S.StudentName,
+    S.Gender,
+    S.City,
+    S.StateName,
+
+    C.CourseName,
+    C.BranchName,
+    C.DepartmentName,
+
+    FCL.FacultyName,
+    FCL.Designation,
+
+    CAT.CategoryName,
+    CAT.CategoryDescription,
+
+    F.ApplicationsReceived,
+    F.SeatsFilled,
+    F.FeesCollected,
+    F.AverageMarks,
+    F.PassPercentage
+
+FROM Star_FactAdmissions F
+
+JOIN Star_DimTime T
+    ON F.TimeKey = T.TimeKey
+
+JOIN Star_DimStudent S
+    ON F.StudentKey = S.StudentKey
+
+JOIN Star_DimCourse C
+    ON F.CourseKey = C.CourseKey
+
+JOIN Star_DimFaculty FCL
+    ON F.FacultyKey = FCL.FacultyKey
+
+JOIN Star_DimCategory CAT
+    ON F.CategoryKey = CAT.CategoryKey;
+
+
+/* =====================================================
+   PART E: CREATE SNOWFLAKE SCHEMA
+   ===================================================== */
+
+DROP TABLE IF EXISTS Snow_FactAdmissions;
+DROP TABLE IF EXISTS Snow_Faculty;
+DROP TABLE IF EXISTS Snow_Course;
+DROP TABLE IF EXISTS Snow_Department;
+DROP TABLE IF EXISTS Snow_Student;
+DROP TABLE IF EXISTS Snow_Category;
+DROP TABLE IF EXISTS Snow_City;
+DROP TABLE IF EXISTS Snow_State;
+DROP TABLE IF EXISTS Snow_Time;
+
+
+/* 1. TIME DIMENSION */
+
+CREATE TABLE Snow_Time (
+    TimeKey INTEGER PRIMARY KEY,
+    AcademicYear VARCHAR(20) NOT NULL,
+    StartYear INTEGER,
+    EndYear INTEGER
+);
+
+
+/* 2. STATE DIMENSION */
+
+CREATE TABLE Snow_State (
+    StateKey INTEGER PRIMARY KEY,
+    StateName VARCHAR(50) NOT NULL
+);
+
+
+/* 3. CITY DIMENSION */
+
+CREATE TABLE Snow_City (
+    CityKey INTEGER PRIMARY KEY,
+    CityName VARCHAR(50) NOT NULL,
+    StateKey INTEGER NOT NULL,
+
+    FOREIGN KEY (StateKey)
+        REFERENCES Snow_State(StateKey)
+);
+
+
+/* 4. CATEGORY DIMENSION */
+
+CREATE TABLE Snow_Category (
+    CategoryKey INTEGER PRIMARY KEY,
+    CategoryName VARCHAR(50),
+    CategoryDescription VARCHAR(100)
+);
+
+
+/* 5. STUDENT DIMENSION */
+
+CREATE TABLE Snow_Student (
+    StudentKey INTEGER PRIMARY KEY,
+    StudentName VARCHAR(100),
+    Gender VARCHAR(20),
+    CityKey INTEGER NOT NULL,
+    CategoryKey INTEGER NOT NULL,
+
+    FOREIGN KEY (CityKey)
+        REFERENCES Snow_City(CityKey),
+
+    FOREIGN KEY (CategoryKey)
+        REFERENCES Snow_Category(CategoryKey)
+);
+
+
+/* 6. DEPARTMENT DIMENSION */
+
+CREATE TABLE Snow_Department (
+    DepartmentKey INTEGER PRIMARY KEY,
+    DepartmentName VARCHAR(100) NOT NULL
+);
+
+
+/* 7. COURSE DIMENSION */
+
+CREATE TABLE Snow_Course (
+    CourseKey INTEGER PRIMARY KEY,
+    CourseName VARCHAR(100),
+    BranchName VARCHAR(100),
+    DepartmentKey INTEGER NOT NULL,
+
+    FOREIGN KEY (DepartmentKey)
+        REFERENCES Snow_Department(DepartmentKey)
+);
+
+
+/* 8. FACULTY DIMENSION */
+
+CREATE TABLE Snow_Faculty (
+    FacultyKey INTEGER PRIMARY KEY,
+    FacultyName VARCHAR(100),
+    Designation VARCHAR(50),
+    DepartmentKey INTEGER NOT NULL,
+
+    FOREIGN KEY (DepartmentKey)
+        REFERENCES Snow_Department(DepartmentKey)
+);
+
+
+/* 9. SNOWFLAKE FACT TABLE */
+
+CREATE TABLE Snow_FactAdmissions (
+    AdmissionFactKey INTEGER PRIMARY KEY,
+    TimeKey INTEGER NOT NULL,
+    StudentKey INTEGER NOT NULL,
+    CourseKey INTEGER NOT NULL,
+    FacultyKey INTEGER NOT NULL,
+    CategoryKey INTEGER NOT NULL,
+
+    ApplicationsReceived INTEGER NOT NULL,
+    SeatsFilled INTEGER NOT NULL,
+    FeesCollected DECIMAL(12,2) NOT NULL,
+    AverageMarks DECIMAL(5,2) NOT NULL,
+    PassPercentage DECIMAL(5,2) NOT NULL,
+
+    FOREIGN KEY (TimeKey)
+        REFERENCES Snow_Time(TimeKey),
+
+    FOREIGN KEY (StudentKey)
+        REFERENCES Snow_Student(StudentKey),
+
+    FOREIGN KEY (CourseKey)
+        REFERENCES Snow_Course(CourseKey),
+
+    FOREIGN KEY (FacultyKey)
+        REFERENCES Snow_Faculty(FacultyKey),
+
+    FOREIGN KEY (CategoryKey)
+        REFERENCES Snow_Category(CategoryKey)
+);
+
+
+/* =====================================================
+   PART F: INSERT ONE ROW INTO EVERY SNOWFLAKE TABLE
+   INSERT PARENT TABLES FIRST
+   ===================================================== */
+
+INSERT INTO Snow_Time
+VALUES (1, '2026-2027', 2026, 2027);
+
+INSERT INTO Snow_State
+VALUES (1, 'Maharashtra');
+
+INSERT INTO Snow_City
+VALUES (1, 'Mumbai', 1);
+
+INSERT INTO Snow_Category
+VALUES (1, 'General', 'General Admission Category');
+
+INSERT INTO Snow_Student
+VALUES (1, 'Aarav Sharma', 'Male', 1, 1);
+
+INSERT INTO Snow_Department
+VALUES (1, 'Engineering');
+
+INSERT INTO Snow_Course
+VALUES (1, 'B.Tech Computer Science',
+        'Computer Science', 1);
+
+INSERT INTO Snow_Faculty
+VALUES (1, 'Dr. Priya Mehta', 'Professor', 1);
+
+INSERT INTO Snow_FactAdmissions
+VALUES (1, 1, 1, 1, 1, 1,
+        100, 80, 400000.00, 78.50, 90.00);
+
+
+/* =====================================================
+   PART G: DISPLAY ALL SNOWFLAKE SCHEMA TABLES
+   ===================================================== */
+
+SELECT * FROM Snow_Time;
+SELECT * FROM Snow_State;
+SELECT * FROM Snow_City;
+SELECT * FROM Snow_Category;
+SELECT * FROM Snow_Student;
+SELECT * FROM Snow_Department;
+SELECT * FROM Snow_Course;
+SELECT * FROM Snow_Faculty;
+SELECT * FROM Snow_FactAdmissions;
+
+
+/* =====================================================
+   PART H: SNOWFLAKE SCHEMA JOIN QUERY
+   FACT + ALL DIMENSIONS
+   ===================================================== */
+
+SELECT
+    T.AcademicYear,
+    T.StartYear,
+    T.EndYear,
+
+    S.StudentName,
+    S.Gender,
+    CI.CityName,
+    ST.StateName,
+
+    CAT.CategoryName,
+    CAT.CategoryDescription,
+
+    C.CourseName,
+    C.BranchName,
+    D.DepartmentName,
+
+    FCL.FacultyName,
+    FCL.Designation,
+
+    F.ApplicationsReceived,
+    F.SeatsFilled,
+    F.FeesCollected,
+    F.AverageMarks,
+    F.PassPercentage
+
+FROM Snow_FactAdmissions F
+
+JOIN Snow_Time T
+    ON F.TimeKey = T.TimeKey
+
+JOIN Snow_Student S
+    ON F.StudentKey = S.StudentKey
+
+JOIN Snow_City CI
+    ON S.CityKey = CI.CityKey
+
+JOIN Snow_State ST
+    ON CI.StateKey = ST.StateKey
+
+JOIN Snow_Category CAT
+    ON F.CategoryKey = CAT.CategoryKey
+
+JOIN Snow_Course C
+    ON F.CourseKey = C.CourseKey
+
+JOIN Snow_Department D
+    ON C.DepartmentKey = D.DepartmentKey
+
+JOIN Snow_Faculty FCL
+    ON F.FacultyKey = FCL.FacultyKey;
+
+
+/* =====================================================
+   PART I: VERIFY EXACTLY ONE ROW PER TABLE
+   ===================================================== */
+
+SELECT 'Star_DimTime' AS TableName, COUNT(*) AS TotalRows
+FROM Star_DimTime
+
+UNION ALL
+SELECT 'Star_DimStudent', COUNT(*) FROM Star_DimStudent
+
+UNION ALL
+SELECT 'Star_DimCourse', COUNT(*) FROM Star_DimCourse
+
+UNION ALL
+SELECT 'Star_DimFaculty', COUNT(*) FROM Star_DimFaculty
+
+UNION ALL
+SELECT 'Star_DimCategory', COUNT(*) FROM Star_DimCategory
+
+UNION ALL
+SELECT 'Star_FactAdmissions', COUNT(*) FROM Star_FactAdmissions
+
+UNION ALL
+SELECT 'Snow_Time', COUNT(*) FROM Snow_Time
+
+UNION ALL
+SELECT 'Snow_State', COUNT(*) FROM Snow_State
+
+UNION ALL
+SELECT 'Snow_City', COUNT(*) FROM Snow_City
+
+UNION ALL
+SELECT 'Snow_Category', COUNT(*) FROM Snow_Category
+
+UNION ALL
+SELECT 'Snow_Student', COUNT(*) FROM Snow_Student
+
+UNION ALL
+SELECT 'Snow_Department', COUNT(*) FROM Snow_Department
+
+UNION ALL
+SELECT 'Snow_Course', COUNT(*) FROM Snow_Course
+
+UNION ALL
+SELECT 'Snow_Faculty', COUNT(*) FROM Snow_Faculty
+
+UNION ALL
+SELECT 'Snow_FactAdmissions', COUNT(*) FROM Snow_FactAdmissions;

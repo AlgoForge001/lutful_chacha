@@ -1,0 +1,280 @@
+
+
+CREATE TABLE DimTime (
+    TimeKey INT PRIMARY KEY,
+    FullDate DATE NOT NULL,
+    DayNumber INT,
+    MonthName VARCHAR(20),
+    QuarterNumber INT,
+    CalendarYear INT
+);
+
+CREATE TABLE DimHotel (
+    HotelKey INT PRIMARY KEY,
+    HotelName VARCHAR(100) NOT NULL,
+    City VARCHAR(50),
+    StateName VARCHAR(50)
+);
+
+CREATE TABLE DimRoom (
+    RoomKey INT PRIMARY KEY,
+    RoomNumber VARCHAR(10),
+    RoomType VARCHAR(30),
+    FloorNo INT,
+    Wing VARCHAR(30)
+);
+
+CREATE TABLE DimGuest (
+    GuestKey INT PRIMARY KEY,
+    GuestName VARCHAR(100),
+    GuestType VARCHAR(30)
+);
+
+CREATE TABLE DimBookingChannel (
+    ChannelKey INT PRIMARY KEY,
+    ChannelName VARCHAR(50),
+    ChannelCategory VARCHAR(50)
+);
+
+CREATE TABLE FactHotelOccupancy (
+    FactKey INT PRIMARY KEY,
+    TimeKey INT NOT NULL,
+    HotelKey INT NOT NULL,
+    RoomKey INT NOT NULL,
+    GuestKey INT NOT NULL,
+    ChannelKey INT NOT NULL,
+    RoomsOccupied INT NOT NULL,
+    AvailableRooms INT NOT NULL,
+    NightsStayed INT NOT NULL,
+    RoomRevenue DECIMAL(12,2) NOT NULL,
+    OccupancyPercent DECIMAL(5,2) NOT NULL,
+
+    FOREIGN KEY (TimeKey) REFERENCES DimTime(TimeKey),
+    FOREIGN KEY (HotelKey) REFERENCES DimHotel(HotelKey),
+    FOREIGN KEY (RoomKey) REFERENCES DimRoom(RoomKey),
+    FOREIGN KEY (GuestKey) REFERENCES DimGuest(GuestKey),
+    FOREIGN KEY (ChannelKey) REFERENCES DimBookingChannel(ChannelKey)
+);
+
+INSERT INTO DimTime
+VALUES (1, '2026-10-15', 15, 'October', 4, 2026);
+
+INSERT INTO DimHotel
+VALUES (1, 'Grand Palace Hotel', 'Mumbai', 'Maharashtra');
+
+INSERT INTO DimRoom
+VALUES (1, '501', 'Deluxe', 5, 'East Wing');
+
+INSERT INTO DimGuest
+VALUES (1, 'Aarav Sharma', 'Business');
+
+INSERT INTO DimBookingChannel
+VALUES (1, 'Booking Website', 'Online');
+
+INSERT INTO FactHotelOccupancy
+VALUES (1, 1, 1, 1, 1, 1, 1, 1, 3, 15000.00, 100.00);
+
+CREATE TABLE SnowTime (
+    TimeKey INT PRIMARY KEY,
+    FullDate DATE NOT NULL,
+    DayNumber INT,
+    MonthName VARCHAR(20),
+    QuarterNumber INT,
+    CalendarYear INT
+);
+
+CREATE TABLE SnowState (
+    StateKey INT PRIMARY KEY,
+    StateName VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE SnowCity (
+    CityKey INT PRIMARY KEY,
+    CityName VARCHAR(50) NOT NULL,
+    StateKey INT NOT NULL,
+    FOREIGN KEY (StateKey) REFERENCES SnowState(StateKey)
+);
+
+CREATE TABLE SnowHotel (
+    HotelKey INT PRIMARY KEY,
+    HotelName VARCHAR(100) NOT NULL,
+    CityKey INT NOT NULL,
+    FOREIGN KEY (CityKey) REFERENCES SnowCity(CityKey)
+);
+
+CREATE TABLE SnowRoomType (
+    RoomTypeKey INT PRIMARY KEY,
+    RoomTypeName VARCHAR(30) NOT NULL
+);
+
+CREATE TABLE SnowFloorWing (
+    FloorWingKey INT PRIMARY KEY,
+    FloorNo INT,
+    Wing VARCHAR(30)
+);
+
+CREATE TABLE SnowRoom (
+    RoomKey INT PRIMARY KEY,
+    RoomNumber VARCHAR(10),
+    RoomTypeKey INT NOT NULL,
+    FloorWingKey INT NOT NULL,
+    FOREIGN KEY (RoomTypeKey) REFERENCES SnowRoomType(RoomTypeKey),
+    FOREIGN KEY (FloorWingKey) REFERENCES SnowFloorWing(FloorWingKey)
+);
+
+CREATE TABLE SnowGuest (
+    GuestKey INT PRIMARY KEY,
+    GuestName VARCHAR(100),
+    GuestType VARCHAR(30)
+);
+
+CREATE TABLE SnowBookingChannel (
+    ChannelKey INT PRIMARY KEY,
+    ChannelName VARCHAR(50),
+    ChannelCategory VARCHAR(50)
+);
+
+CREATE TABLE SnowFactHotelOccupancy (
+    FactKey INT PRIMARY KEY,
+    TimeKey INT NOT NULL,
+    HotelKey INT NOT NULL,
+    RoomKey INT NOT NULL,
+    GuestKey INT NOT NULL,
+    ChannelKey INT NOT NULL,
+    RoomsOccupied INT NOT NULL,
+    AvailableRooms INT NOT NULL,
+    NightsStayed INT NOT NULL,
+    RoomRevenue DECIMAL(12,2) NOT NULL,
+    OccupancyPercent DECIMAL(5,2) NOT NULL,
+
+    FOREIGN KEY (TimeKey) REFERENCES SnowTime(TimeKey),
+    FOREIGN KEY (HotelKey) REFERENCES SnowHotel(HotelKey),
+    FOREIGN KEY (RoomKey) REFERENCES SnowRoom(RoomKey),
+    FOREIGN KEY (GuestKey) REFERENCES SnowGuest(GuestKey),
+    FOREIGN KEY (ChannelKey) REFERENCES SnowBookingChannel(ChannelKey)
+);
+
+INSERT INTO SnowTime
+VALUES (1, '2026-10-15', 15, 'October', 4, 2026);
+
+INSERT INTO SnowState
+VALUES (1, 'Maharashtra');
+
+INSERT INTO SnowCity
+VALUES (1, 'Mumbai', 1);
+
+INSERT INTO SnowHotel
+VALUES (1, 'Grand Palace Hotel', 1);
+
+INSERT INTO SnowRoomType
+VALUES (1, 'Deluxe');
+
+INSERT INTO SnowFloorWing
+VALUES (1, 5, 'East Wing');
+
+INSERT INTO SnowRoom
+VALUES (1, '501', 1, 1);
+
+INSERT INTO SnowGuest
+VALUES (1, 'Aarav Sharma', 'Business');
+
+INSERT INTO SnowBookingChannel
+VALUES (1, 'Booking Website', 'Online');
+
+INSERT INTO SnowFactHotelOccupancy
+VALUES (1, 1, 1, 1, 1, 1, 1, 1, 3, 15000.00, 100.00);
+
+
+SELECT * FROM DimTime;
+SELECT * FROM DimHotel;
+SELECT * FROM DimRoom;
+SELECT * FROM DimGuest;
+SELECT * FROM DimBookingChannel;
+SELECT * FROM FactHotelOccupancy;
+
+
+SELECT * FROM SnowTime;
+SELECT * FROM SnowState;
+SELECT * FROM SnowCity;
+SELECT * FROM SnowHotel;
+SELECT * FROM SnowRoomType;
+SELECT * FROM SnowFloorWing;
+SELECT * FROM SnowRoom;
+SELECT * FROM SnowGuest;
+SELECT * FROM SnowBookingChannel;
+SELECT * FROM SnowFactHotelOccupancy;
+
+
+
+SELECT
+    T.FullDate,
+    T.MonthName,
+    T.CalendarYear,
+    H.HotelName,
+    H.City,
+    H.StateName,
+    R.RoomNumber,
+    R.RoomType,
+    R.FloorNo,
+    R.Wing,
+    G.GuestName,
+    G.GuestType,
+    B.ChannelName,
+    B.ChannelCategory,
+    F.RoomsOccupied,
+    F.AvailableRooms,
+    F.NightsStayed,
+    F.RoomRevenue,
+    F.OccupancyPercent
+FROM FactHotelOccupancy F
+JOIN DimTime T
+    ON F.TimeKey = T.TimeKey
+JOIN DimHotel H
+    ON F.HotelKey = H.HotelKey
+JOIN DimRoom R
+    ON F.RoomKey = R.RoomKey
+JOIN DimGuest G
+    ON F.GuestKey = G.GuestKey
+JOIN DimBookingChannel B
+    ON F.ChannelKey = B.ChannelKey;
+
+
+SELECT
+    T.FullDate,
+    T.MonthName,
+    T.CalendarYear,
+    H.HotelName,
+    C.CityName,
+    S.StateName,
+    R.RoomNumber,
+    RT.RoomTypeName,
+    FW.FloorNo,
+    FW.Wing,
+    G.GuestName,
+    G.GuestType,
+    B.ChannelName,
+    B.ChannelCategory,
+    F.RoomsOccupied,
+    F.AvailableRooms,
+    F.NightsStayed,
+    F.RoomRevenue,
+    F.OccupancyPercent
+FROM SnowFactHotelOccupancy F
+JOIN SnowTime T
+    ON F.TimeKey = T.TimeKey
+JOIN SnowHotel H
+    ON F.HotelKey = H.HotelKey
+JOIN SnowCity C
+    ON H.CityKey = C.CityKey
+JOIN SnowState S
+    ON C.StateKey = S.StateKey
+JOIN SnowRoom R
+    ON F.RoomKey = R.RoomKey
+JOIN SnowRoomType RT
+    ON R.RoomTypeKey = RT.RoomTypeKey
+JOIN SnowFloorWing FW
+    ON R.FloorWingKey = FW.FloorWingKey
+JOIN SnowGuest G
+    ON F.GuestKey = G.GuestKey
+JOIN SnowBookingChannel B
+    ON F.ChannelKey = B.ChannelKey;
