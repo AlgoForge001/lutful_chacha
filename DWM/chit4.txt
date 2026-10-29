@@ -472,3 +472,184 @@ UNION ALL
 SELECT 'Snow_Diagnosis', COUNT(*) FROM Snow_Diagnosis
 UNION ALL
 SELECT 'Snow_FactAdmissions', COUNT(*) FROM Snow_FactAdmissions;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Star Schema: Hospital Patient Admissions
+
+One central fact table (`Star_FactAdmissions`) connected directly to 5 dimension tables.
+
+Legend: `PK` = Primary Key, `FK` = Foreign Key, `▲ ▼` = arrow points to the dimension table (the PK side).
+
+```
+┌────────────────────────┐   ┌────────────────────────┐   ┌────────────────────────┐
+│ Star_DimTime           │   │ Star_DimPatient        │   │ Star_DimDoctor         │
+├────────────────────────┤   ├────────────────────────┤   ├────────────────────────┤
+│ PK TimeKey             │   │ PK PatientKey          │   │ PK DoctorKey           │
+│    FullDate            │   │    PatientName         │   │    DoctorName          │
+│    DayNumber           │   │    Gender              │   │    Qualification       │
+│    MonthName           │   │    Age                 │   │    Specialisation      │
+│    QuarterNumber       │   │    Area                │   │    DepartmentName      │
+│    CalendarYear        │   │    City                │   │                        │
+└───────────┬────────────┘   └───────────┬────────────┘   └───────────┬────────────┘
+            ▲                            ▲                            ▲
+            │                            │                            │
+            │ TimeKey                    │ PatientKey                 │ DoctorKey
+            │                            │                            │
+      ┌─────┴────────────────────────────┴────────────────────────────┴──────┐
+      │ Star_FactAdmissions  (FACT TABLE)                                    │
+      ├──────────────────────────────────────────────────────────────────────┤
+      │ Keys                               Measures                          │
+      │ PK AdmissionKey                      AdmissionsCount                 │
+      │ FK TimeKey                           LengthOfStayDays                │
+      │ FK PatientKey                        TreatmentCost                   │
+      │ FK DoctorKey                         BillAmount                      │
+      │ FK DepartmentKey                                                     │
+      │ FK DiagnosisKey                                                      │
+      └───────────────────┬──────────────────────────────┬───────────────────┘
+                          │                              │
+                          │ DepartmentKey                │ DiagnosisKey
+                          ▼                              ▼
+              ┌────────────────────────┐     ┌────────────────────────┐
+              │ Star_DimDepartment     │     │ Star_DimDiagnosis      │
+              ├────────────────────────┤     ├────────────────────────┤
+              │ PK DepartmentKey       │     │ PK DiagnosisKey        │
+              │    DepartmentName      │     │    DiagnosisName       │
+              │    DepartmentLocation  │     │    DiagnosisCategory   │
+              │                        │     │    Severity            │
+              └────────────────────────┘     └────────────────────────┘
+```
+
+## Connections
+
+| Fact Table FK                       | Dimension Table PK                  |
+|-------------------------------------|-------------------------------------|
+| Star_FactAdmissions.TimeKey         | Star_DimTime.TimeKey                |
+| Star_FactAdmissions.PatientKey      | Star_DimPatient.PatientKey          |
+| Star_FactAdmissions.DoctorKey       | Star_DimDoctor.DoctorKey            |
+| Star_FactAdmissions.DepartmentKey   | Star_DimDepartment.DepartmentKey    |
+| Star_FactAdmissions.DiagnosisKey    | Star_DimDiagnosis.DiagnosisKey      |
+
+Total: 6 tables (1 fact + 5 dimensions). All dimensions are denormalized: Area and City sit inside `Star_DimPatient`, and Specialisation and DepartmentName sit inside `Star_DimDoctor` (as plain text columns, with no link to `Star_DimDepartment`).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Snowflake Schema: Hospital Patient Admissions
+
+Same fact table, but `Patient` and `Doctor` are normalized into sub-dimensions:
+
+- Patient → Area → City
+- Doctor → Specialisation
+- Doctor → Department (`Snow_Department` is also linked directly to the fact table)
+
+`Snow_Time` and `Snow_Diagnosis` stay as single tables.
+
+Legend: `PK` = Primary Key, `FK` = Foreign Key, `▲ ▼ ►` = arrow points to the parent table (the PK side).
+
+```
+┌──────────────────────┐     ┌──────────────────────┐
+│ Snow_Time            │     │ Snow_Diagnosis       │
+├──────────────────────┤     ├──────────────────────┤
+│ PK TimeKey           │     │ PK DiagnosisKey      │
+│    FullDate          │     │    DiagnosisName     │
+│    DayNumber         │     │    DiagnosisCategory │
+│    MonthName         │     │    Severity          │
+│    QuarterNumber     │     └──────────┬───────────┘
+│    CalendarYear      │                ▲
+└──────────┬───────────┘                │
+           ▲                            │
+           │                            │
+           │                            │
+           │ TimeKey                    │ DiagnosisKey
+           │                            │
+           │                            │
+┌──────────┴────────────────────────────┴────────────────────────────────────────┐
+│ Snow_FactAdmissions  (FACT TABLE)                                              │
+├────────────────────────────────────────────────────────────────────────────────┤
+│ Keys                                    Measures                               │
+│ PK AdmissionKey                           AdmissionsCount                      │
+│ FK TimeKey                                LengthOfStayDays                     │
+│ FK PatientKey                             TreatmentCost                        │
+│ FK DoctorKey                              BillAmount                           │
+│ FK DepartmentKey                                                               │
+│ FK DiagnosisKey                                                                │
+└──────────┬────────────────────────────┬────────────────────────────┬───────────┘
+           │                            │                            │
+           │ DoctorKey                  │ DepartmentKey              │ PatientKey
+           ▼                            ▼                            ▼
+┌──────────────────────┐     ┌──────────────────────┐     ┌──────────────────────┐
+│ Snow_Doctor          │     │ Snow_Department      │     │ Snow_Patient         │
+├──────────────────────┤     ├──────────────────────┤     ├──────────────────────┤
+│ PK DoctorKey         │     │ PK DepartmentKey     │     │ PK PatientKey        │
+│    DoctorName        │     │    DepartmentName    │     │    PatientName       │
+│    Qualification     │     │    DepartmentLocation│     │    Gender            │
+│ FK SpecialisationKey │     │                      │     │    Age               │
+│ FK DepartmentKey     ├────►│                      │     │ FK AreaKey           │
+└──────────┬───────────┘     └──────────────────────┘     └──────────┬───────────┘
+           │ SpecialisationKey                                       │ AreaKey
+           ▼                                                         ▼
+┌──────────────────────┐                                  ┌──────────────────────┐
+│ Snow_Specialisation  │                                  │ Snow_Area            │
+├──────────────────────┤                                  ├──────────────────────┤
+│ PK SpecialisationKey │                                  │ PK AreaKey           │
+│    SpecialisationName│                                  │    AreaName          │
+└──────────────────────┘                                  │ FK CityKey           │
+                                                          └──────────┬───────────┘
+                                                                     │ CityKey
+                                                                     ▼
+                                                          ┌──────────────────────┐
+                                                          │ Snow_City            │
+                                                          ├──────────────────────┤
+                                                          │ PK CityKey           │
+                                                          │    CityName          │
+                                                          └──────────────────────┘
+```
+
+## Connections
+
+| Child Table FK                        | Parent Table PK                    |
+|---------------------------------------|------------------------------------|
+| Snow_FactAdmissions.TimeKey           | Snow_Time.TimeKey                  |
+| Snow_FactAdmissions.PatientKey        | Snow_Patient.PatientKey            |
+| Snow_FactAdmissions.DoctorKey         | Snow_Doctor.DoctorKey              |
+| Snow_FactAdmissions.DepartmentKey     | Snow_Department.DepartmentKey      |
+| Snow_FactAdmissions.DiagnosisKey      | Snow_Diagnosis.DiagnosisKey        |
+| Snow_Patient.AreaKey                  | Snow_Area.AreaKey                  |
+| Snow_Area.CityKey                     | Snow_City.CityKey                  |
+| Snow_Doctor.SpecialisationKey         | Snow_Specialisation.SpecialisationKey |
+| Snow_Doctor.DepartmentKey             | Snow_Department.DepartmentKey      |
+
+Total: 9 tables (1 fact + 8 dimension tables).

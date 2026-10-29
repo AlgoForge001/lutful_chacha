@@ -356,3 +356,207 @@ JOIN Snow_Region RG
     ON ST.RegionKey = RG.RegionKey
 JOIN Snow_Salesperson SP
     ON F.SalespersonKey = SP.SalespersonKey;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Star Schema: Furniture Sales
+
+One central fact table (`Star_FactFurnitureSales`) connected directly to 5 dimension tables.
+
+Legend: `PK` = Primary Key, `FK` = Foreign Key, `▲ ▼` = arrow points to the dimension table (the PK side).
+
+```
+┌────────────────────────┐   ┌────────────────────────┐   ┌────────────────────────┐
+│ Star_DimTime           │   │ Star_DimProduct        │   │ Star_DimRetailer       │
+├────────────────────────┤   ├────────────────────────┤   ├────────────────────────┤
+│ PK TimeKey             │   │ PK ProductKey          │   │ PK RetailerKey         │
+│    FullDate            │   │    ProductName         │   │    RetailerName        │
+│    DayNumber           │   │    CategoryName        │   │    Contact             │
+│    MonthName           │   │    SupplierName        │   │    RetailerType        │
+│    QuarterNumber       │   │                        │   │                        │
+│    CalendarYear        │   │                        │   │                        │
+└───────────┬────────────┘   └───────────┬────────────┘   └───────────┬────────────┘
+            ▲                            ▲                            ▲
+            │                            │                            │
+            │ TimeKey                    │ ProductKey                 │ RetailerKey
+            │                            │                            │
+      ┌─────┴────────────────────────────┴────────────────────────────┴──────┐
+      │ Star_FactFurnitureSales  (FACT TABLE)                                │
+      ├──────────────────────────────────────────────────────────────────────┤
+      │ Keys                               Measures                          │
+      │ PK SalesKey                          UnitsSold                       │
+      │ FK TimeKey                           SalesAmount                     │
+      │ FK ProductKey                        DiscountAmount                  │
+      │ FK RetailerKey                       Profit                          │
+      │ FK LocationKey                                                       │
+      │ FK SalespersonKey                                                    │
+      └───────────────────┬──────────────────────────────┬───────────────────┘
+                          │                              │
+                          │ LocationKey                  │ SalespersonKey
+                          ▼                              ▼
+              ┌────────────────────────┐     ┌────────────────────────┐
+              │ Star_DimLocation       │     │ Star_DimSalesperson    │
+              ├────────────────────────┤     ├────────────────────────┤
+              │ PK LocationKey         │     │ PK SalespersonKey      │
+              │    City                │     │    SalespersonName     │
+              │    StateName           │     │    EmployeeCode        │
+              │    RegionName          │     │                        │
+              └────────────────────────┘     └────────────────────────┘
+```
+
+## Connections
+
+| Fact Table FK                          | Dimension Table PK                   |
+|----------------------------------------|--------------------------------------|
+| Star_FactFurnitureSales.TimeKey        | Star_DimTime.TimeKey                 |
+| Star_FactFurnitureSales.ProductKey     | Star_DimProduct.ProductKey           |
+| Star_FactFurnitureSales.RetailerKey    | Star_DimRetailer.RetailerKey         |
+| Star_FactFurnitureSales.LocationKey    | Star_DimLocation.LocationKey         |
+| Star_FactFurnitureSales.SalespersonKey | Star_DimSalesperson.SalespersonKey   |
+
+Total: 6 tables (1 fact + 5 dimensions). All dimensions are denormalized, so Category and Supplier sit inside `Star_DimProduct`, and State and Region sit inside `Star_DimLocation`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Snowflake Schema: Furniture Sales
+
+Same fact table, but `Product` and `Location` are normalized into sub-dimensions:
+
+- Product → Category and Product → Supplier
+- Location → City → State → Region
+
+`Snow_Time`, `Snow_Retailer` and `Snow_Salesperson` stay as single tables.
+
+Legend: `PK` = Primary Key, `FK` = Foreign Key, `▲ ▼` = arrow points to the parent table (the PK side).
+
+```
+┌──────────────────────┐     ┌──────────────────────┐     ┌──────────────────────┐
+│ Snow_Time            │     │ Snow_Retailer        │     │ Snow_Salesperson     │
+├──────────────────────┤     ├──────────────────────┤     ├──────────────────────┤
+│ PK TimeKey           │     │ PK RetailerKey       │     │ PK SalespersonKey    │
+│    FullDate          │     │    RetailerName      │     │    SalespersonName   │
+│    DayNumber         │     │    Contact           │     │    EmployeeCode      │
+│    MonthName         │     │    RetailerType      │     └──────────┬───────────┘
+│    QuarterNumber     │     └──────────┬───────────┘                ▲
+│    CalendarYear      │                ▲                            │
+└──────────┬───────────┘                │                            │
+           ▲                            │                            │
+           │                            │                            │
+           │                            │                            │
+           │ TimeKey                    │ RetailerKey                │ SalespersonKey
+           │                            │                            │
+           │                            │                            │
+┌──────────┴────────────────────────────┴────────────────────────────┴───────────┐
+│ Snow_FactFurnitureSales  (FACT TABLE)                                          │
+├────────────────────────────────────────────────────────────────────────────────┤
+│ Keys                                    Measures                               │
+│ PK SalesKey                               UnitsSold                            │
+│ FK TimeKey                                SalesAmount                          │
+│ FK ProductKey                             DiscountAmount                       │
+│ FK RetailerKey                            Profit                               │
+│ FK LocationKey                                                                 │
+│ FK SalespersonKey                                                              │
+└────────────────────────┬───────────────────────────────────────────┬───────────┘
+                         │                                           │
+                         │ ProductKey                                │ LocationKey
+                         ▼                                           ▼
+              ┌──────────────────────┐                    ┌──────────────────────┐
+              │ Snow_Product         │                    │ Snow_Location        │
+              ├──────────────────────┤                    ├──────────────────────┤
+              │ PK ProductKey        │                    │ PK LocationKey       │
+              │    ProductName       │                    │    LocationName      │
+              │ FK CategoryKey       │                    │ FK CityKey           │
+              │ FK SupplierKey       │                    └──────────┬───────────┘
+              └──────────┬───────────┘                               │ CityKey
+                         │                                           ▼
+           ┌─────────────┴──────────────┐                 ┌──────────────────────┐
+           ▼ CategoryKey                ▼ SupplierKey     │ Snow_City            │
+┌──────────────────────┐     ┌──────────────────────┐     ├──────────────────────┤
+│ Snow_Category        │     │ Snow_Supplier        │     │ PK CityKey           │
+├──────────────────────┤     ├──────────────────────┤     │    CityName          │
+│ PK CategoryKey       │     │ PK SupplierKey       │     │ FK StateKey          │
+│    CategoryName      │     │    SupplierName      │     └──────────┬───────────┘
+└──────────────────────┘     └──────────────────────┘                │ StateKey
+                                                                     ▼
+                                                          ┌──────────────────────┐
+                                                          │ Snow_State           │
+                                                          ├──────────────────────┤
+                                                          │ PK StateKey          │
+                                                          │    StateName         │
+                                                          │ FK RegionKey         │
+                                                          └──────────┬───────────┘
+                                                                     │ RegionKey
+                                                                     ▼
+                                                          ┌──────────────────────┐
+                                                          │ Snow_Region          │
+                                                          ├──────────────────────┤
+                                                          │ PK RegionKey         │
+                                                          │    RegionName        │
+                                                          └──────────────────────┘
+```
+
+## Connections
+
+| Child Table FK                          | Parent Table PK                   |
+|-----------------------------------------|-----------------------------------|
+| Snow_FactFurnitureSales.TimeKey         | Snow_Time.TimeKey                 |
+| Snow_FactFurnitureSales.ProductKey      | Snow_Product.ProductKey           |
+| Snow_FactFurnitureSales.RetailerKey     | Snow_Retailer.RetailerKey         |
+| Snow_FactFurnitureSales.LocationKey     | Snow_Location.LocationKey         |
+| Snow_FactFurnitureSales.SalespersonKey  | Snow_Salesperson.SalespersonKey   |
+| Snow_Product.CategoryKey                | Snow_Category.CategoryKey         |
+| Snow_Product.SupplierKey                | Snow_Supplier.SupplierKey         |
+| Snow_Location.CityKey                   | Snow_City.CityKey                 |
+| Snow_City.StateKey                      | Snow_State.StateKey               |
+| Snow_State.RegionKey                    | Snow_Region.RegionKey             |
+
+Total: 11 tables (1 fact + 10 dimension tables).

@@ -481,3 +481,177 @@ SELECT 'Snow_Faculty', COUNT(*) FROM Snow_Faculty
 
 UNION ALL
 SELECT 'Snow_FactAdmissions', COUNT(*) FROM Snow_FactAdmissions;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Star Schema: College Admissions and Results
+
+One central fact table (`Star_FactAdmissions`) connected directly to 5 dimension tables.
+
+Legend: `PK` = Primary Key, `FK` = Foreign Key, `▲ ▼` = arrow points to the dimension table (the PK side).
+
+```
+┌────────────────────────┐   ┌────────────────────────┐   ┌────────────────────────┐
+│ Star_DimTime           │   │ Star_DimStudent        │   │ Star_DimCourse         │
+├────────────────────────┤   ├────────────────────────┤   ├────────────────────────┤
+│ PK TimeKey             │   │ PK StudentKey          │   │ PK CourseKey           │
+│    AcademicYear        │   │    StudentName         │   │    CourseName          │
+│    StartYear           │   │    Gender              │   │    BranchName          │
+│    EndYear             │   │    City                │   │    DepartmentName      │
+│                        │   │    StateName           │   │                        │
+│                        │   │                        │   │                        │
+└───────────┬────────────┘   └───────────┬────────────┘   └───────────┬────────────┘
+            ▲                            ▲                            ▲
+            │                            │                            │
+            │ TimeKey                    │ StudentKey                 │ CourseKey
+            │                            │                            │
+      ┌─────┴────────────────────────────┴────────────────────────────┴──────┐
+      │ Star_FactAdmissions  (FACT TABLE)                                    │
+      ├──────────────────────────────────────────────────────────────────────┤
+      │ Keys                               Measures                          │
+      │ PK AdmissionFactKey                  ApplicationsReceived            │
+      │ FK TimeKey                           SeatsFilled                     │
+      │ FK StudentKey                        FeesCollected                   │
+      │ FK CourseKey                         AverageMarks                    │
+      │ FK FacultyKey                        PassPercentage                  │
+      │ FK CategoryKey                                                       │
+      └───────────────────┬──────────────────────────────┬───────────────────┘
+                          │                              │
+                          │ FacultyKey                   │ CategoryKey
+                          ▼                              ▼
+              ┌────────────────────────┐     ┌────────────────────────┐
+              │ Star_DimFaculty        │     │ Star_DimCategory       │
+              ├────────────────────────┤     ├────────────────────────┤
+              │ PK FacultyKey          │     │ PK CategoryKey         │
+              │    FacultyName         │     │    CategoryName        │
+              │    Designation         │     │    CategoryDescription │
+              └────────────────────────┘     └────────────────────────┘
+```
+
+## Connections
+
+| Fact Table FK                      | Dimension Table PK                |
+|------------------------------------|-----------------------------------|
+| Star_FactAdmissions.TimeKey        | Star_DimTime.TimeKey              |
+| Star_FactAdmissions.StudentKey     | Star_DimStudent.StudentKey        |
+| Star_FactAdmissions.CourseKey      | Star_DimCourse.CourseKey          |
+| Star_FactAdmissions.FacultyKey     | Star_DimFaculty.FacultyKey        |
+| Star_FactAdmissions.CategoryKey    | Star_DimCategory.CategoryKey      |
+
+Total: 6 tables (1 fact + 5 dimensions). All dimensions are denormalized: City and StateName sit inside `Star_DimStudent`, and BranchName and DepartmentName sit inside `Star_DimCourse`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Snowflake Schema: College Admissions and Results
+
+Same fact table, but the dimensions are normalized into sub-dimensions:
+
+- Student → City → State
+- Student → Category (`Snow_Category` is also linked directly to the fact table)
+- Course → Department
+- Faculty → Department (`Snow_Department` is shared by `Snow_Course` and `Snow_Faculty`, and has no direct link to the fact table)
+
+`Snow_Time` stays as a single table.
+
+Legend: `PK` = Primary Key, `FK` = Foreign Key, `▲ ▼ ► ◄` = arrow points to the parent table (the PK side).
+
+```
+┌────────────────────────┐     ┌────────────────────────┐     ┌────────────────────────┐
+│ Snow_Faculty           │     │ Snow_Department        │     │ Snow_Course            │
+├────────────────────────┤     ├────────────────────────┤     ├────────────────────────┤
+│ PK FacultyKey          │     │ PK DepartmentKey       │     │ PK CourseKey           │
+│    FacultyName         │     │    DepartmentName      │     │    CourseName          │
+│    Designation         │     │                        │     │    BranchName          │
+│ FK DepartmentKey       ├────►│                        │◄────┤ FK DepartmentKey       │
+└───────────┬────────────┘     └────────────────────────┘     └───────────┬────────────┘
+            ▲                                                             ▲
+            │                                                             │
+            │                                                             │
+            │                                                             │
+            │                                                             │
+            │ FacultyKey                                                  │ CourseKey
+            │                                                             │
+            │                                                             │
+┌───────────┴─────────────────────────────────────────────────────────────┴──────┐
+│ Snow_FactAdmissions  (FACT TABLE)                                              │
+├────────────────────────────────────────────────────────────────────────────────┤
+│ Keys                                    Measures                               │
+│ PK AdmissionFactKey                       ApplicationsReceived                 │
+│ FK TimeKey                                SeatsFilled                          │
+│ FK StudentKey                             FeesCollected                        │
+│ FK CourseKey                              AverageMarks                         │
+│ FK FacultyKey                             PassPercentage                       │
+│ FK CategoryKey                                                                 │
+└───────────┬──────────────────────────────┬──────────────────────────────┬──────┘
+            │                              │                              │
+            │ TimeKey                      │ StudentKey                   │ CategoryKey
+            ▼                              ▼                              ▼
+┌────────────────────────┐     ┌────────────────────────┐     ┌────────────────────────┐
+│ Snow_Time              │     │ Snow_Student           │     │ Snow_Category          │
+├────────────────────────┤     ├────────────────────────┤     ├────────────────────────┤
+│ PK TimeKey             │     │ PK StudentKey          │     │ PK CategoryKey         │
+│    AcademicYear        │     │    StudentName         │     │    CategoryName        │
+│    StartYear           │     │    Gender              │     │    CategoryDescription │
+│    EndYear             │     │ FK CityKey             │     │                        │
+└────────────────────────┘     │ FK CategoryKey         ├────►│                        │
+                               └───────────┬────────────┘     └────────────────────────┘
+                                           │ CityKey
+                                           ▼
+                               ┌────────────────────────┐
+                               │ Snow_City              │
+                               ├────────────────────────┤
+                               │ PK CityKey             │
+                               │    CityName            │
+                               │ FK StateKey            │
+                               └───────────┬────────────┘
+                                           │ StateKey
+                                           ▼
+                               ┌────────────────────────┐
+                               │ Snow_State             │
+                               ├────────────────────────┤
+                               │ PK StateKey            │
+                               │    StateName           │
+                               └────────────────────────┘
+```
+
+## Connections
+
+| Child Table FK                       | Parent Table PK                  |
+|--------------------------------------|----------------------------------|
+| Snow_FactAdmissions.TimeKey          | Snow_Time.TimeKey                |
+| Snow_FactAdmissions.StudentKey       | Snow_Student.StudentKey          |
+| Snow_FactAdmissions.CourseKey        | Snow_Course.CourseKey            |
+| Snow_FactAdmissions.FacultyKey       | Snow_Faculty.FacultyKey          |
+| Snow_FactAdmissions.CategoryKey      | Snow_Category.CategoryKey        |
+| Snow_Student.CityKey                 | Snow_City.CityKey                |
+| Snow_Student.CategoryKey             | Snow_Category.CategoryKey        |
+| Snow_City.StateKey                   | Snow_State.StateKey              |
+| Snow_Course.DepartmentKey            | Snow_Department.DepartmentKey    |
+| Snow_Faculty.DepartmentKey           | Snow_Department.DepartmentKey    |
+
+Total: 9 tables (1 fact + 8 dimension tables).

@@ -504,3 +504,193 @@ SELECT 'Snow_BookingAgent', COUNT(*) FROM Snow_BookingAgent
 
 UNION ALL
 SELECT 'Snow_FactBookings', COUNT(*) FROM Snow_FactBookings;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Star Schema: Airline Ticket Reservation
+
+One central fact table (`Star_FactBookings`) connected directly to 5 dimension tables.
+
+Legend: `PK` = Primary Key, `FK` = Foreign Key, `▲ ▼` = arrow points to the dimension table (the PK side).
+
+```
+┌────────────────────────────┐   ┌────────────────────────────┐   ┌────────────────────────────┐
+│ Star_DimTime               │   │ Star_DimFlight             │   │ Star_DimRoute              │
+├────────────────────────────┤   ├────────────────────────────┤   ├────────────────────────────┤
+│ PK TimeKey                 │   │ PK FlightKey               │   │ PK RouteKey                │
+│    FullDate                │   │    FlightNumber            │   │    RouteCode               │
+│    DayNumber               │   │    AirlineName             │   │    OriginAirportCode       │
+│    MonthName               │   │    AircraftType            │   │    OriginAirportName       │
+│    QuarterNumber           │   │                            │   │    DestinationAirportCode  │
+│    CalendarYear            │   │                            │   │    DestinationAirportName  │
+└─────────────┬──────────────┘   └─────────────┬──────────────┘   └─────────────┬──────────────┘
+              ▲                                ▲                                ▲
+              │                                │                                │
+              │ TimeKey                        │ FlightKey                      │ RouteKey
+              │                                │                                │
+      ┌───────┴────────────────────────────────┴────────────────────────────────┴────────┐
+      │ Star_FactBookings  (FACT TABLE)                                                  │
+      ├──────────────────────────────────────────────────────────────────────────────────┤
+      │ Keys                                     Measures                                │
+      │ PK BookingKey                              TicketsSold                           │
+      │ FK TimeKey                                 FareAmount                            │
+      │ FK FlightKey                               SeatOccupancyPercent                  │
+      │ FK RouteKey                                Cancellations                         │
+      │ FK PassengerKey                                                                  │
+      │ FK AgentKey                                                                      │
+      └─────────────────────┬──────────────────────────────────┬─────────────────────────┘
+                            │                                  │
+                            │ PassengerKey                     │ AgentKey
+                            ▼                                  ▼
+              ┌────────────────────────────┐     ┌────────────────────────────┐
+              │ Star_DimPassenger          │     │ Star_DimBookingAgent       │
+              ├────────────────────────────┤     ├────────────────────────────┤
+              │ PK PassengerKey            │     │ PK AgentKey                │
+              │    PassengerName           │     │    AgentName               │
+              │    Gender                  │     │    AgencyName              │
+              │    PassengerType           │     │    BookingChannel          │
+              └────────────────────────────┘     └────────────────────────────┘
+```
+
+## Connections
+
+| Fact Table FK                    | Dimension Table PK                  |
+|----------------------------------|-------------------------------------|
+| Star_FactBookings.TimeKey        | Star_DimTime.TimeKey                |
+| Star_FactBookings.FlightKey      | Star_DimFlight.FlightKey            |
+| Star_FactBookings.RouteKey       | Star_DimRoute.RouteKey              |
+| Star_FactBookings.PassengerKey   | Star_DimPassenger.PassengerKey      |
+| Star_FactBookings.AgentKey       | Star_DimBookingAgent.AgentKey       |
+
+Total: 6 tables (1 fact + 5 dimensions). All dimensions are denormalized: AircraftType sits inside `Star_DimFlight`, and both origin and destination airport details sit inside `Star_DimRoute`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Snowflake Schema: Airline Ticket Reservation
+
+Same fact table, but `Flight` and `Route` are normalized into sub-dimensions:
+
+- Flight → AircraftType
+- Route → OriginAirport and Route → DestinationAirport
+
+`Snow_Time`, `Snow_Passenger` and `Snow_BookingAgent` stay as single tables.
+
+Legend: `PK` = Primary Key, `FK` = Foreign Key, `▲ ▼` = arrow points to the parent table (the PK side).
+
+```
+┌──────────────────────────┐     ┌──────────────────────────┐     ┌──────────────────────────┐
+│ Snow_Time                │     │ Snow_Passenger           │     │ Snow_BookingAgent        │
+├──────────────────────────┤     ├──────────────────────────┤     ├──────────────────────────┤
+│ PK TimeKey               │     │ PK PassengerKey          │     │ PK AgentKey              │
+│    FullDate              │     │    PassengerName         │     │    AgentName             │
+│    DayNumber             │     │    Gender                │     │    AgencyName            │
+│    MonthName             │     │    PassengerType         │     │    BookingChannel        │
+│    QuarterNumber         │     └────────────┬─────────────┘     └────────────┬─────────────┘
+│    CalendarYear          │                  ▲                                ▲
+└────────────┬─────────────┘                  │                                │
+             ▲                                │                                │
+             │                                │                                │
+             │                                │                                │
+             │ TimeKey                        │ PassengerKey                   │ AgentKey
+             │                                │                                │
+             │                                │                                │
+┌────────────┴────────────────────────────────┴────────────────────────────────┴───────────────┐
+│ Snow_FactBookings  (FACT TABLE)                                                              │
+├──────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Keys                                           Measures                                      │
+│ PK BookingKey                                    TicketsSold                                 │
+│ FK TimeKey                                       FareAmount                                  │
+│ FK FlightKey                                     SeatOccupancyPercent                        │
+│ FK RouteKey                                      Cancellations                               │
+│ FK PassengerKey                                                                              │
+│ FK AgentKey                                                                                  │
+└────────────┬────────────────────────────────────────────────┬────────────────────────────────┘
+             │                                                │
+             │ FlightKey                                      │ RouteKey
+             ▼                                                ▼
+┌──────────────────────────┐                     ┌──────────────────────────┐
+│ Snow_Flight              │                     │ Snow_Route               │
+├──────────────────────────┤                     ├──────────────────────────┤
+│ PK FlightKey             │                     │ PK RouteKey              │
+│    FlightNumber          │                     │    RouteCode             │
+│    AirlineName           │                     │ FK OriginAirportKey      │
+│ FK AircraftTypeKey       │                     │ FK DestinationAirportKey │
+└────────────┬─────────────┘                     └────────────┬─────────────┘
+             │ AircraftTypeKey                                │
+             ▼                                ┌───────────────┴────────────────┐
+┌──────────────────────────┐                  ▼ OriginAirportKey               ▼ DestinationAirportKey
+│ Snow_AircraftType        │     ┌──────────────────────────┐     ┌──────────────────────────┐
+├──────────────────────────┤     │ Snow_OriginAirport       │     │ Snow_DestinationAirport  │
+│ PK AircraftTypeKey       │     ├──────────────────────────┤     ├──────────────────────────┤
+│    AircraftTypeName      │     │ PK OriginAirportKey      │     │ PK DestinationAirportKey │
+└──────────────────────────┘     │    AirportCode           │     │    AirportCode           │
+                                 │    AirportName           │     │    AirportName           │
+                                 │    CityName              │     │    CityName              │
+                                 └──────────────────────────┘     └──────────────────────────┘
+```
+
+## Connections
+
+| Child Table FK                       | Parent Table PK                           |
+|--------------------------------------|-------------------------------------------|
+| Snow_FactBookings.TimeKey            | Snow_Time.TimeKey                         |
+| Snow_FactBookings.FlightKey          | Snow_Flight.FlightKey                     |
+| Snow_FactBookings.RouteKey           | Snow_Route.RouteKey                       |
+| Snow_FactBookings.PassengerKey       | Snow_Passenger.PassengerKey               |
+| Snow_FactBookings.AgentKey           | Snow_BookingAgent.AgentKey                |
+| Snow_Flight.AircraftTypeKey          | Snow_AircraftType.AircraftTypeKey         |
+| Snow_Route.OriginAirportKey          | Snow_OriginAirport.OriginAirportKey       |
+| Snow_Route.DestinationAirportKey     | Snow_DestinationAirport.DestinationAirportKey |
+
+Total: 9 tables (1 fact + 8 dimension tables).

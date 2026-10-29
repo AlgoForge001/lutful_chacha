@@ -278,3 +278,191 @@ JOIN SnowGuest G
     ON F.GuestKey = G.GuestKey
 JOIN SnowBookingChannel B
     ON F.ChannelKey = B.ChannelKey;
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Star Schema: Hotel Occupancy
+
+One central fact table (`FactHotelOccupancy`) connected directly to 5 dimension tables.
+
+Legend: `PK` = Primary Key, `FK` = Foreign Key, `▲ ▼` = arrow points to the dimension table (the PK side).
+
+```
+┌────────────────────────┐   ┌────────────────────────┐   ┌────────────────────────┐
+│ DimTime                │   │ DimHotel               │   │ DimRoom                │
+├────────────────────────┤   ├────────────────────────┤   ├────────────────────────┤
+│ PK TimeKey             │   │ PK HotelKey            │   │ PK RoomKey             │
+│    FullDate            │   │    HotelName           │   │    RoomNumber          │
+│    DayNumber           │   │    City                │   │    RoomType            │
+│    MonthName           │   │    StateName           │   │    FloorNo             │
+│    QuarterNumber       │   │                        │   │    Wing                │
+│    CalendarYear        │   │                        │   │                        │
+└───────────┬────────────┘   └───────────┬────────────┘   └───────────┬────────────┘
+            ▲                            ▲                            ▲
+            │                            │                            │
+            │ TimeKey                    │ HotelKey                   │ RoomKey
+            │                            │                            │
+      ┌─────┴────────────────────────────┴────────────────────────────┴──────┐
+      │ FactHotelOccupancy  (FACT TABLE)                                     │
+      ├──────────────────────────────────────────────────────────────────────┤
+      │ Keys                               Measures                          │
+      │ PK FactKey                           RoomsOccupied                   │
+      │ FK TimeKey                           AvailableRooms                  │
+      │ FK HotelKey                          NightsStayed                    │
+      │ FK RoomKey                           RoomRevenue                     │
+      │ FK GuestKey                          OccupancyPercent                │
+      │ FK ChannelKey                                                        │
+      └───────────────────┬──────────────────────────────┬───────────────────┘
+                          │                              │
+                          │ GuestKey                     │ ChannelKey
+                          ▼                              ▼
+              ┌────────────────────────┐     ┌────────────────────────┐
+              │ DimGuest               │     │ DimBookingChannel      │
+              ├────────────────────────┤     ├────────────────────────┤
+              │ PK GuestKey            │     │ PK ChannelKey          │
+              │    GuestName           │     │    ChannelName         │
+              │    GuestType           │     │    ChannelCategory     │
+              └────────────────────────┘     └────────────────────────┘
+
+```
+
+## Connections
+
+| Fact Table FK                     | Dimension Table PK              |
+|-----------------------------------|---------------------------------|
+| FactHotelOccupancy.TimeKey        | DimTime.TimeKey                 |
+| FactHotelOccupancy.HotelKey       | DimHotel.HotelKey               |
+| FactHotelOccupancy.RoomKey        | DimRoom.RoomKey                 |
+| FactHotelOccupancy.GuestKey       | DimGuest.GuestKey               |
+| FactHotelOccupancy.ChannelKey     | DimBookingChannel.ChannelKey    |
+
+Total: 6 tables (1 fact + 5 dimensions), all dimensions are denormalized (no dimension links to another dimension).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Snowflake Schema: Hotel Occupancy
+
+Same fact table, but `Hotel` and `Room` dimensions are normalized into sub-dimensions:
+
+- Hotel → City → State
+- Room → RoomType and Room → FloorWing
+
+Legend: `PK` = Primary Key, `FK` = Foreign Key, `▲ ▼ ►` = arrow points to the parent table (the PK side).
+
+```
+┌──────────────────────┐     ┌──────────────────────┐     ┌──────────────────────┐     ┌──────────────────────┐
+│ SnowTime             │     │ SnowHotel            ├────►│ SnowCity             ├────►│ SnowState            │
+├──────────────────────┤     ├──────────────────────┤     ├──────────────────────┤     ├──────────────────────┤
+│ PK TimeKey           │     │ PK HotelKey          │     │ PK CityKey           │     │ PK StateKey          │
+│    FullDate          │     │    HotelName         │     │    CityName          │     │    StateName         │
+│    DayNumber         │     │ FK CityKey           │     │ FK StateKey          │     └──────────────────────┘
+│    MonthName         │     └──────────┬───────────┘     └──────────────────────┘
+│    QuarterNumber     │                ▲
+│    CalendarYear      │                │
+└──────────┬───────────┘                │
+           ▲                            │
+           │                            │
+           │                            │
+           │ TimeKey                    │ HotelKey
+           │                            │
+           │                            │
+┌──────────┴────────────────────────────┴────────────────────────────────────────┐
+│ SnowFactHotelOccupancy  (FACT TABLE)                                           │
+├────────────────────────────────────────────────────────────────────────────────┤
+│ Keys                                    Measures                               │
+│ PK FactKey                                RoomsOccupied                        │
+│ FK TimeKey                                AvailableRooms                       │
+│ FK HotelKey                               NightsStayed                         │
+│ FK RoomKey                                RoomRevenue                          │
+│ FK GuestKey                               OccupancyPercent                     │
+│ FK ChannelKey                                                                  │
+└──────────┬────────────────────────────┬────────────────────────────┬───────────┘
+           │                            │                            │
+           │ GuestKey                   │ ChannelKey                 │ RoomKey
+           ▼                            ▼                            ▼
+┌──────────────────────┐     ┌──────────────────────┐     ┌──────────────────────┐
+│ SnowGuest            │     │ SnowBookingChannel   │     │ SnowRoom             │
+├──────────────────────┤     ├──────────────────────┤     ├──────────────────────┤
+│ PK GuestKey          │     │ PK ChannelKey        │     │ PK RoomKey           │
+│    GuestName         │     │    ChannelName       │     │    RoomNumber        │
+│    GuestType         │     │    ChannelCategory   │     │ FK RoomTypeKey       │
+└──────────────────────┘     └──────────────────────┘     │ FK FloorWingKey      │
+                                                          └──────────┬───────────┘
+                                                                     │
+                                                          ┌──────────┴────────────────┐
+                                                          ▼ RoomTypeKey               ▼ FloorWingKey
+                                               ┌──────────────────────┐    ┌──────────────────────┐
+                                               │ SnowRoomType         │    │ SnowFloorWing        │
+                                               ├──────────────────────┤    ├──────────────────────┤
+                                               │ PK RoomTypeKey       │    │ PK FloorWingKey      │
+                                               │    RoomTypeName      │    │    FloorNo           │
+                                               └──────────────────────┘    │    Wing              │
+                                                                           └──────────────────────┘
+
+```
+
+## Connections
+
+| Child Table FK                          | Parent Table PK                 |
+|-----------------------------------------|---------------------------------|
+| SnowFactHotelOccupancy.TimeKey          | SnowTime.TimeKey                |
+| SnowFactHotelOccupancy.HotelKey         | SnowHotel.HotelKey              |
+| SnowFactHotelOccupancy.RoomKey          | SnowRoom.RoomKey                |
+| SnowFactHotelOccupancy.GuestKey         | SnowGuest.GuestKey              |
+| SnowFactHotelOccupancy.ChannelKey       | SnowBookingChannel.ChannelKey   |
+| SnowHotel.CityKey                       | SnowCity.CityKey                |
+| SnowCity.StateKey                       | SnowState.StateKey              |
+| SnowRoom.RoomTypeKey                    | SnowRoomType.RoomTypeKey        |
+| SnowRoom.FloorWingKey                   | SnowFloorWing.FloorWingKey      |
+
+Total: 10 tables (1 fact + 9 dimension tables).

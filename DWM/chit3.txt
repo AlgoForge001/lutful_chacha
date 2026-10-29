@@ -484,3 +484,169 @@ UNION ALL
 SELECT 'Snow_Promotion', COUNT(*) FROM Snow_Promotion
 UNION ALL
 SELECT 'Snow_FactSales', COUNT(*) FROM Snow_FactSales;
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Star Schema: Supermarket Sales
+
+One central fact table (`Star_FactSales`) connected directly to 5 dimension tables.
+
+Legend: `PK` = Primary Key, `FK` = Foreign Key, `▲ ▼` = arrow points to the dimension table (the PK side).
+
+```
+┌────────────────────────┐   ┌────────────────────────┐   ┌────────────────────────┐
+│ Star_DimTime           │   │ Star_DimProduct        │   │ Star_DimStore          │
+├────────────────────────┤   ├────────────────────────┤   ├────────────────────────┤
+│ PK TimeKey             │   │ PK ProductKey          │   │ PK StoreKey            │
+│    FullDate            │   │    ProductName         │   │    StoreName           │
+│    DayNumber           │   │    CategoryName        │   │    City                │
+│    MonthName           │   │    BrandName           │   │    StateName           │
+│    QuarterNumber       │   │                        │   │                        │
+│    CalendarYear        │   │                        │   │                        │
+└───────────┬────────────┘   └───────────┬────────────┘   └───────────┬────────────┘
+            ▲                            ▲                            ▲
+            │                            │                            │
+            │ TimeKey                    │ ProductKey                 │ StoreKey
+            │                            │                            │
+      ┌─────┴────────────────────────────┴────────────────────────────┴──────┐
+      │ Star_FactSales  (FACT TABLE)                                         │
+      ├──────────────────────────────────────────────────────────────────────┤
+      │ Keys                               Measures                          │
+      │ PK SalesKey                          QuantitySold                    │
+      │ FK TimeKey                           SalesAmount                     │
+      │ FK ProductKey                        DiscountAmount                  │
+      │ FK StoreKey                          Profit                          │
+      │ FK CustomerKey                                                       │
+      │ FK PromotionKey                                                      │
+      └───────────────────┬──────────────────────────────┬───────────────────┘
+                          │                              │
+                          │ CustomerKey                  │ PromotionKey
+                          ▼                              ▼
+              ┌────────────────────────┐     ┌────────────────────────┐
+              │ Star_DimCustomer       │     │ Star_DimPromotion      │
+              ├────────────────────────┤     ├────────────────────────┤
+              │ PK CustomerKey         │     │ PK PromotionKey        │
+              │    CustomerName        │     │    PromotionName       │
+              │    CustomerType        │     │    PromotionType       │
+              │    Email               │     │    StartDate           │
+              │                        │     │    EndDate             │
+              └────────────────────────┘     └────────────────────────┘
+```
+
+## Connections
+
+| Fact Table FK                  | Dimension Table PK                |
+|--------------------------------|-----------------------------------|
+| Star_FactSales.TimeKey         | Star_DimTime.TimeKey              |
+| Star_FactSales.ProductKey      | Star_DimProduct.ProductKey        |
+| Star_FactSales.StoreKey        | Star_DimStore.StoreKey            |
+| Star_FactSales.CustomerKey     | Star_DimCustomer.CustomerKey      |
+| Star_FactSales.PromotionKey    | Star_DimPromotion.PromotionKey    |
+
+Total: 6 tables (1 fact + 5 dimensions). All dimensions are denormalized, so Category and Brand sit inside `Star_DimProduct`, and City and State sit inside `Star_DimStore`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Snowflake Schema: Supermarket Sales
+
+Same fact table, but `Product` and `Store` are normalized into sub-dimensions:
+
+- Product → Category and Product → Brand
+- Store → City → State
+
+`Snow_Time`, `Snow_Customer` and `Snow_Promotion` stay as single tables.
+
+Legend: `PK` = Primary Key, `FK` = Foreign Key, `▲ ▼` = arrow points to the parent table (the PK side).
+
+```
+┌──────────────────────┐     ┌──────────────────────┐     ┌──────────────────────┐
+│ Snow_Time            │     │ Snow_Customer        │     │ Snow_Promotion       │
+├──────────────────────┤     ├──────────────────────┤     ├──────────────────────┤
+│ PK TimeKey           │     │ PK CustomerKey       │     │ PK PromotionKey      │
+│    FullDate          │     │    CustomerName      │     │    PromotionName     │
+│    DayNumber         │     │    CustomerType      │     │    PromotionType     │
+│    MonthName         │     │    Email             │     │    StartDate         │
+│    QuarterNumber     │     └──────────┬───────────┘     │    EndDate           │
+│    CalendarYear      │                ▲                 └──────────┬───────────┘
+└──────────┬───────────┘                │                            ▲
+           ▲                            │                            │
+           │                            │                            │
+           │                            │                            │
+           │ TimeKey                    │ CustomerKey                │ PromotionKey
+           │                            │                            │
+           │                            │                            │
+┌──────────┴────────────────────────────┴────────────────────────────┴───────────┐
+│ Snow_FactSales  (FACT TABLE)                                                   │
+├────────────────────────────────────────────────────────────────────────────────┤
+│ Keys                                    Measures                               │
+│ PK SalesKey                               QuantitySold                         │
+│ FK TimeKey                                SalesAmount                          │
+│ FK ProductKey                             DiscountAmount                       │
+│ FK StoreKey                               Profit                               │
+│ FK CustomerKey                                                                 │
+│ FK PromotionKey                                                                │
+└────────────────────────┬───────────────────────────────────────────┬───────────┘
+                         │                                           │
+                         │ ProductKey                                │ StoreKey
+                         ▼                                           ▼
+              ┌──────────────────────┐                    ┌──────────────────────┐
+              │ Snow_Product         │                    │ Snow_Store           │
+              ├──────────────────────┤                    ├──────────────────────┤
+              │ PK ProductKey        │                    │ PK StoreKey          │
+              │    ProductName       │                    │    StoreName         │
+              │ FK CategoryKey       │                    │ FK CityKey           │
+              │ FK BrandKey          │                    └──────────┬───────────┘
+              └──────────┬───────────┘                               │ CityKey
+                         │                                           ▼
+           ┌─────────────┴──────────────┐                 ┌──────────────────────┐
+           ▼ CategoryKey                ▼ BrandKey        │ Snow_City            │
+┌──────────────────────┐     ┌──────────────────────┐     ├──────────────────────┤
+│ Snow_Category        │     │ Snow_Brand           │     │ PK CityKey           │
+├──────────────────────┤     ├──────────────────────┤     │    CityName          │
+│ PK CategoryKey       │     │ PK BrandKey          │     │ FK StateKey          │
+│    CategoryName      │     │    BrandName         │     └──────────┬───────────┘
+└──────────────────────┘     └──────────────────────┘                │ StateKey
+                                                                     ▼
+                                                          ┌──────────────────────┐
+                                                          │ Snow_State           │
+                                                          ├──────────────────────┤
+                                                          │ PK StateKey          │
+                                                          │    StateName         │
+                                                          └──────────────────────┘
+```
+
+## Connections
+
+| Child Table FK                  | Parent Table PK                |
+|---------------------------------|--------------------------------|
+| Snow_FactSales.TimeKey          | Snow_Time.TimeKey              |
+| Snow_FactSales.ProductKey       | Snow_Product.ProductKey        |
+| Snow_FactSales.StoreKey         | Snow_Store.StoreKey            |
+| Snow_FactSales.CustomerKey      | Snow_Customer.CustomerKey      |
+| Snow_FactSales.PromotionKey     | Snow_Promotion.PromotionKey    |
+| Snow_Product.CategoryKey        | Snow_Category.CategoryKey      |
+| Snow_Product.BrandKey           | Snow_Brand.BrandKey            |
+| Snow_Store.CityKey              | Snow_City.CityKey              |
+| Snow_City.StateKey              | Snow_State.StateKey            |
+
+Total: 10 tables (1 fact + 9 dimension tables).
