@@ -1,0 +1,41 @@
+cell 1:
+import pandas as pd
+import numpy as np
+
+data = {
+    'Age': [20, 21, np.nan, 22, 21, 23, np.nan, 20],
+    'Salary': [20000, 25000, 30000, np.nan, 28000, 35000, 32000, np.nan],
+    'Department': ['IT', 'CS', 'IT', np.nan, 'CS', 'IT', 'CS', 'IT']
+}
+
+df = pd.DataFrame(data)
+df.to_csv('data.csv', index=False)
+
+df = pd.read_csv('data.csv')
+
+print("Dataset Shape:", df.shape)
+print("\nData Types:\n", df.dtypes)
+print("\nFirst 5 Rows:\n", df.head())
+
+cell 2:
+print("Mean:\n", df.select_dtypes(include='number').mean())
+print("\nMedian:\n", df.select_dtypes(include='number').median())
+print("\nMode:\n", df.mode().iloc[0])
+print("\nStandard Deviation:\n", df.select_dtypes(include='number').std())
+print("\nQuartiles:\n", df.select_dtypes(include='number').quantile([0.25, 0.50, 0.75]))
+print("\nDescriptive Statistics:\n", df.describe())
+
+cell 3:
+print("Missing Values:\n", df.isnull().sum())
+
+cell 4:
+df['Age'] = df['Age'].fillna(df['Age'].median())
+df['Salary'] = df['Salary'].fillna(df['Salary'].mean())
+df['Department'] = df['Department'].fillna(df['Department'].mode()[0])
+
+print("Dataset After Filling Missing Values:\n", df)
+print("\nMissing Values After Cleaning:\n", df.isnull().sum())
+
+cell 5:
+df.to_csv('cleaned_data.csv', index=False)
+print("Cleaned dataset saved successfully!")
